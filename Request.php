@@ -25,22 +25,18 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace WASP\HTTP;
 
-use WASP\Debug\LoggerAwareStaticTrait;
-use WASP\Resolve\Resolver;
-use WASP\Dictionary;
-use WASP\Path;
-use WASP\Site;
-use WASP\VirtualHost;
-use WASP\Cache;
-use WASP\TerminateRequest;
-use WASP\Config;
-use WASP\Session;
-use WASP\AppRunner;
-use WASP\Template;
-use WASP\HTTP\RedirectRequest;
-
 use Throwable;
 use DateTime;
+
+use WASP\Log\LoggerAwareStaticTrait;
+use WASP\Resolve\Resolver;
+use WASP\Util\Dictionary;
+use WASP\Platform\Path;
+use WASP\Platform\Site;
+use WASP\Platform\VirtualHost;
+use WASP\Platform\TerminateRequest;
+use WASP\Platform\AppRunner;
+use WASP\Platform\Template;
 
 /**
  * Request encapsulates a HTTP request, containing all data transferrred to the

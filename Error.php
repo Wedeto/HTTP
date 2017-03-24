@@ -26,7 +26,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace WASP\HTTP;
 
 use WASP\Template;
-use WASP\Dictionary;
+use WASP\Util\Dictionary;
 use WASP\Log\Logger;
 use WASP\Log\LoggerAwareStaticTrait;
 use WASP\Util\Functions as WF;
