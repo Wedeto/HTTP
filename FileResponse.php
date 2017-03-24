@@ -26,8 +26,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace WASP\HTTP;
 
 use WASP\Util\Functions as WF;
-use WASP\Debug\LoggerAwareStaticTrait;
-use WASP\DefVal;
+use WASP\Log\LoggerAwareStaticTrait;
+use WASP\Util\DefVal;
 
 /**
  * Output a file, given its filename. The handler may decide to output the

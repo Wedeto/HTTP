@@ -23,9 +23,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\Http;
-
-use WASP\System;
+namespace WASP\HTTP;
 
 abstract class Response extends \Exception
 {
@@ -41,7 +39,7 @@ abstract class Response extends \Exception
 
     /** 
      * Set the request associated to this response 
-     * @return WASP\Http\Response Provides fluent interface
+     * @return WASP\HTTP\Response Provides fluent interface
      */
     public function setRequest(Request $request)
     {
@@ -51,12 +49,10 @@ abstract class Response extends \Exception
 
     /**
      * Return the associated request. If none was set, the default is returned.
-     * @return WASP\Http\Request The associated request
+     * @return WASP\HTTP\Request The associated request
      */
     public function getRequest()
     {
-        if ($this->request === null)
-            $this->request = System::request();
         return $this->request;
     }
 

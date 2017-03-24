@@ -225,7 +225,7 @@ class Request
     }
 
     /**
-     * @return WASP\Template The current template renderer
+     * @return WASP\Platform\Template The current template renderer
      */
     public function getTemplate()
     {
@@ -237,7 +237,7 @@ class Request
 
     /**
      * Set the template object
-     * @param WASP\Template $tpl The template renderer to use
+     * @param WASP\Platform\Template $tpl The template renderer to use
      * @return WASP\HTTP\Request Provides fluent interface
      */
     public function setTemplate(Template $tpl)
@@ -511,7 +511,7 @@ class Request
 
     /**
      * @return boolean Whether the request accepts JSON as response
-     * @see WASP\Template::want
+     * @see WASP\Platform\Template::want
      */
     public function wantJSON()
     {
@@ -520,7 +520,7 @@ class Request
 
     /**
      * @return boolean Whether the request accepts HTML as response
-     * @see WASP\Template::want
+     * @see WASP\Platform\Template::want
      */
     public function wantHTML()
     {
@@ -529,7 +529,7 @@ class Request
 
     /**
      * @return boolean Whether the request accepts HTML as response
-     * @see WASP\Template::want
+     * @see WASP\Platform\Template::want
      */
     public function wantText()
     {
@@ -538,7 +538,7 @@ class Request
 
     /**
      * @return boolean Whether the request accepts XML as response
-     * @see WASP\Template::want
+     * @see WASP\Platform\Template::want
      */
     public function wantXML()
     {

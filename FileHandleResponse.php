@@ -25,7 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace WASP\HTTP;
 
-use WASP\Debug\LoggerAwareStaticTrait;
+use WASP\Log\LoggerAwareStaticTrait;
 
 /**
  * Output a file, given an opened file handle. 

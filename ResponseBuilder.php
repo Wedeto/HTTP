@@ -26,9 +26,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace WASP\HTTP;
 
 use WASP\AssetManager;
-use WASP\Debug\Logger;
-use WASP\Debug\DevLogger;
-use WASP\Debug\LoggerAwareStaticTrait;
+use WASP\Log\Logger;
+use WASP\Log\DevLogger;
+use WASP\Log\LoggerAwareStaticTrait;
 
 use DateTime;
 use DateInterval;
