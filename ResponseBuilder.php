@@ -28,7 +28,7 @@ namespace WASP\HTTP;
 use WASP\AssetManager;
 use WASP\Log\Logger;
 use WASP\Log\DevLogger;
-use WASP\Log\LoggerAwareStaticTrait;
+use WASP\Util\LoggerAwareStaticTrait;
 
 use DateTime;
 use DateInterval;
@@ -68,14 +68,13 @@ class ResponseBuilder
      */
     public function __construct(Request $request)
     {
+        self::getLogger();
         $this->request = $request;
 
         // Check for a Dev-logger
-        $rootlogger = Logger::getLogger();
-        $handlers = $rootlogger->getLogHandlers();
-        foreach ($handlers as $h)
-            if ($h instanceof DevLogger)
-                $this->addHook($h);
+        $devlogger = DevLogger::getInstance();
+        if ($devlogger)
+            $this->addHook(new DevLogHook($devlogger));
 
         $this->asset_manager = new AssetManager($request);
         $this->addHook($this->asset_manager);
@@ -98,7 +97,7 @@ class ResponseBuilder
     {
         if (!($exception instanceof Response))
         {
-            self::$logger->error("Exception: {exception}", ["exception" => $exception]);
+            self::getLogger()->error("Exception: {exception}", ["exception" => $exception]);
 
             // Wrap the error in a HTTP Error 500
             $exception = new Error(500, "An error occured", $user_message = "", $exception);
@@ -191,7 +190,7 @@ class ResponseBuilder
         if ($code < 100 || $code > 599)
         {
             $err = new \InvalidArgumentException("Attempting to set status code to $code");
-            self::$logger->critical("Invalid status {0}: {1}", [$code, $err]);
+            self::getLogger()->critical("Invalid status {0}: {1}", [$code, $err]);
             $this->response_code = 500;
         }
         else
@@ -236,7 +235,7 @@ class ResponseBuilder
             foreach ($lines as $n => $line)
             {
                 if (!empty($line))
-                    self::$logger->debug("Script output: {0}/{1}: {2}", [$ob_cnt, $n + 1, $line]);
+                    self::getLogger()->debug("Script output: {0}/{1}: {2}", [$ob_cnt, $n + 1, $line]);
             }
         }
     }
@@ -308,7 +307,7 @@ class ResponseBuilder
             }
             catch (Throwable $e)
             {
-                self::$logger->alert('Error while running hooks: {0}', [$e]);
+                self::getLogger()->alert('Error while running hooks: {0}', [$e]);
                 $this->response = new Error(500, "Error while running hooks", $e);
                 $this->response = $this->response->transformResponse($mime);
             }
@@ -364,17 +363,13 @@ class ResponseBuilder
             }
         }
         else
-            self::$logger->critical('Headers were already sent when ResponseBuilder wants to send them');
+            self::getLogger()->critical('Headers were already sent when ResponseBuilder wants to send them');
 
         // Perform output
         $this->response->output($mime);
 
         // We're done
-        self::$logger->debug("** Finished processing request to {0}", [$this->request->url]);
+        self::getLogger()->debug("** Finished processing request to {0}", [$this->request->url]);
         die();
     }
 }
-
-// @codeCoverageIgnoreStart
-ResponseBuilder::setLogger();
-// @codeCoverageIgnoreEnd

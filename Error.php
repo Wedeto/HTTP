@@ -27,8 +27,7 @@ namespace WASP\HTTP;
 
 use WASP\Platform\Template;
 use WASP\Util\Dictionary;
-use WASP\Log\Logger;
-use WASP\Log\LoggerAwareStaticTrait;
+use WASP\Util\LoggerAwareStaticTrait;
 use WASP\Util\Functions as WF;
 
 use Throwable;
@@ -97,7 +96,7 @@ class Error extends Response
         }
         catch (Throwable $e)
         {
-            self::$logger->emergency("Could not render error template, using fallback writer! Exception: {0}", [$e]);
+            self::getLogger()->emergency("Could not render error template, using fallback writer! Exception: {0}", [$e]);
             $op = array('exception' => $exception);
 
             // Write the output and return it as a string response
@@ -115,7 +114,7 @@ class Error extends Response
     {
         $status = $this->getStatusCode();
         $status_msg = isset(StatusCode::$CODES[$status]) ? StatusCode::$CODES[$status] : "Internal Server Error";
-        $exception_str = Logger::str($this);
+        $exception_str = WF::str($this);
         $exception_list = explode("\n", $exception_str);
         $data = array(
             'message' => $this->getMessage(),
@@ -145,7 +144,7 @@ class Error extends Response
     {
         if (!WF::is_array_like($data))
         {
-            printf("%s\n", Logger::str($data, $html));
+            printf("%s\n", WF::str($data, $html));
             return;
         }
 
@@ -173,12 +172,8 @@ class Error extends Response
             {
                 if (is_int($key))
                     $key = sprintf('%0' . $cntwidth . 'd', $key);
-                printf("%s%s = '%s'%s", $indentstr, $key, Logger::str($value, $html), $nl);
+                printf("%s%s = '%s'%s", $indentstr, $key, WF::str($value, $html), $nl);
             }
         }
     }
 }
-
-// @codeCoverageIgnoreStart
-Error::setLogger();
-// @codeCoverageIgnoreEnd

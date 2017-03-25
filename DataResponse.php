@@ -93,12 +93,8 @@ class DataResponse extends Response
         catch (Throwable $e)
         {
             // Bad. Attempt to override response type if still possible
-            self::$logger->critical('Could not output data, exception occured while writing: {0}', [$e]);
+            self::getLogger()->critical('Could not output data, exception occured while writing: {0}', [$e]);
             Error::fallbackWriter($this->dictionary, $mime);
         }
     }
 }
-
-// @codeCoverageIgnoreStart
-DataResponse::setLogger();
-// @codeCoverageIgnoreEnd

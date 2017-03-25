@@ -28,7 +28,7 @@ namespace WASP\HTTP;
 use Throwable;
 use DateTime;
 
-use WASP\Log\LoggerAwareStaticTrait;
+use WASP\Util\LoggerAwareStaticTrait;
 use WASP\Resolve\Resolver;
 use WASP\Util\Dictionary;
 use WASP\Platform\Path;
@@ -178,6 +178,7 @@ class Request
         Resolver $resolver
     )
     {
+        self::getLogger();
         $this->get = Dictionary::wrap($get);
         $this->post = Dictionary::wrap($post);
         $this->cookie = Dictionary::wrap($cookie);
@@ -709,7 +710,3 @@ class Request
     }
 
 }
-
-// @codeCoverageIgnoreStart
-Request::setLogger();
-// @codeCoverageIgnoreEnd

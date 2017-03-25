@@ -26,7 +26,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace WASP\HTTP;
 
 use WASP\Util\Functions as WF;
-use WASP\Log\LoggerAwareStaticTrait;
+use WASP\Util\LoggerAwareStaticTrait;
 use WASP\Util\DefVal;
 
 /**
@@ -130,14 +130,10 @@ class FileResponse extends Response
         $bytes = readfile($this->filename);
         if (!empty($this->length) && $bytes != $this->length)
         {
-            self::$logger->warning(
+            self::getLogger()->warning(
                 "FileResponse promised to send {0} bytes but {1} were actually transfered of file {2}", 
                 [$this->length, $bytes, $this->output_filename]
             );
         }
     }
 }
-
-// @codeCoverageIgnoreStart
-FileResponse::setLogger();
-// @codeCoverageIgnoreEnd

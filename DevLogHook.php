@@ -35,11 +35,9 @@ class DevLoggerHook implements ResponseHookInterface
 {
     protected $devlogger = null;
 
-    public function __construct()
+    public function __construct(DevLogger $logger)
     {
-        $this->devlogger = DevLogger::getInstance();
-        if ($this->devlogger === null)
-            $this->devlogger = new DevLogger(Psr\Log\LogLevel::INFO);
+        $this->devlogger = $logger;
     }
 
     /**
