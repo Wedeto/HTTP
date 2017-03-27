@@ -30,6 +30,7 @@ use DateInterval;
 
 use WASP\Util\Dictionary;
 use WASP\Util\Date;
+use WASP\Util\Functions as WF;
 use WASP\Util\ErrorInterceptor;
 use WASP\HTTP\Error as HTTPError;
 
@@ -74,7 +75,7 @@ class Session extends Dictionary
 
         // Calculate the lifetime and expiry date
         $lifetime = $this->config->dget('lifetime', '30D');
-        if (is_int_val($lifetime))
+        if (WF::is_int_val($lifetime))
             $lifetime = 'T' . $lifetime . 'S';
         $lifetime = new DateInterval('P' . $lifetime);
 
@@ -86,7 +87,7 @@ class Session extends Dictionary
         $this->lifetime = $expire->getTimestamp() - $now->getTimestamp();
 
         // HTTPOnly should basically always be set, but allow override nonetheless
-        $httponly = parse_bool($this->config->dget('httponly', true));
+        $httponly = WF::parse_bool($this->config->dget('httponly', true));
 
         $this->url = new URL($base_url);
         $session_name = (string)$this->config->dget('prefix', 'wasp_') . str_replace(".", "_", $this->url->host);
