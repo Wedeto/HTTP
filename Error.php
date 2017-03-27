@@ -29,36 +29,62 @@ use WASP\Util\Dictionary;
 use WASP\Util\LoggerAwareStaticTrait;
 use WASP\Util\Functions as WF;
 
+use WASP\FileFormats\WriterFactory;
+
 use Throwable;
 
 class Error extends Response
 {
     use LoggerAwareStaticTrait;
 
+    /** The nesting counter avoids nesting due to errors */
     private static $nesting_counter = 0;
+    
+    /** The user message may be shown to end-users, even if dev-mode is disabled */
     private $user_message;
 
-    public function __construct($code, $error, $user_message = null, $previous = null)
+    /**
+     * Create the HTTP Error exception.
+     * @param int $code The HTTP Response Code
+     * @param string $error The error message
+     * @param string $user_message The message for the user
+     * @param Throwable $previous The previous exception
+     */
+    public function __construct(int $code, string $error, $user_message = null, $previous = null)
     {
         parent::__construct($error, $code, $previous);
         $this->user_message = $user_message;
     }
 
+    /** 
+     * @return string The user message accompanying this error
+     */
     public function getUserMessage()
     {
         return $this->user_message;
     }
 
+    /**
+     * @return array The list of available mime types
+     */
     public function getMimeTypes()
     {
-        $types = DataResponse::$representation_types;
+        $types = WriterFactory::getAvailableWriters();
+
+        // Remove HTML if present
         unset($types['text/html']);
 
+        // Get the keys and add HTML and plain to the start
         $keys = array_keys($types);
+        array_unshift($keys, 'text/plain');
         array_unshift($keys, 'text/html');
         return $keys;
     }
 
+    /** 
+     * Output the error in the specified mime type
+     * @param string $mime The mime type for the response
+     */
     public function output(string $mime)
     {
         if ($mime === "text/html" || $mime === "text/plain")
@@ -67,6 +93,13 @@ class Error extends Response
             $this->toDataResponse($mime)->output($mime);
     }
 
+    /** 
+     * Transform the response into a StringResponse or DataResponse,
+     * based on the preferred mime-type, returning the new Response.
+     *
+     * @param string $mime The mime type that will be output
+     * @return Response A different response type, based on the mime type
+     */
     public function transformResponse(string $mime)
     {
         if ($mime === "text/html" || $mime === "text/plain")
@@ -75,6 +108,10 @@ class Error extends Response
         return $this->toDataResponse($mime);
     }
 
+    /** 
+     * Convert the error to a string response
+     * @param string $mime The mime type
+     */
     private function toStringResponse(string $mime)
     {
         $exception = $this->getPrevious();
@@ -108,7 +145,12 @@ class Error extends Response
         }
         return $result;
     }
-
+        
+    /** 
+     * Convert the Error to a data response
+     *
+     * @param string $mime The mime type that will be output
+     */
     private function toDataResponse(string $mime)
     {
         $status = $this->getStatusCode();
@@ -126,6 +168,10 @@ class Error extends Response
         return new DataResponse($dict);
     }
 
+    /** 
+     * A falbak writer will write to HTML, directly.
+     * Used for very serious error situations when no template is available
+     */
     public static function fallbackWriter($output, $mime = "text/plain")
     {
         $html = $mime === 'text/html';

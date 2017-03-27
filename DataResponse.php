@@ -30,8 +30,9 @@ use InvalidArgumentException;
 
 use WASP\Util\Dictionary;
 use WASP\Util\LoggerAwareStaticTrait;
-use WASP\Util\DefVal;
 use WASP\Util\Functions as WF;
+use WASP\FileFormats\AbstractWriter;
+use WASP\FileFormats\WriterFactory;
 
 /**
  * DataResponse represents structured data, such as JSON or XML. The
@@ -41,41 +42,115 @@ class DataResponse extends Response
 {
     use LoggerAwareStaticTrait;
 
-    private $dictionary;
+    /** The response data */
+    protected $data;
 
-    public static $representation_types = array(
-        'application/json' => "JSON",
-        'application/xml' => "XML",
-        'text/html' => "HTML",
-        'text/plain' => "PLAIN"
-    );
+    /** The available mime-types => writers */
+    protected $file_formats = array();
 
-    public function __construct($dict, $status_code = 200)
+    /** The pretty-printing flag for the response writer*/
+    protected $pretty_printing = false;
+
+    /**
+     * Create the data response by setting a array-like parameter.
+     * By default, the available writers are obtained from
+     * WriterFactory::getAvailableWriters.
+     * 
+     * @param mixed $data The response data
+     * @param int $status_code The response status code
+     */
+    public function __construct($data, int $status_code = 200)
     {
         parent::__construct("DataResponse", $status_code);
-        if ($dict instanceof Dictionary)
-            $this->dictionary = $dict;
+        if ($data instanceof Dictionary)
+            $this->data = $data;
         else
-            $this->dictionary = new Dictionary(WF::to_array($dict));
+            $this->data = new Dictionary(WF::to_array($data));
+
+        $this->file_formats = WriterFactory::getAvailableWriters();
     }
 
-    public function getDictionary()
+    /**
+     * Set the available file formats - replacing the previous list
+     */
+    public function setFileFormats(array $formats)
     {
-        return $this->dictionary;
+        $this->file_formats = array();
+        foreach ($formats as $mime => $writer)
+            $this->addFileFormat($mime, $writer);
+
+        return $this;
     }
 
+    /**
+     * Add a file format that this writer can output. This can be used to
+     * add a custom mime-type -> writer mapping. If the format is already
+     * registered, it is overwritten.
+     *
+     * @param string $mime_type The mime type to register
+     * @param string $writer_class The writer class. Should subclass AbstractWriter
+     * @return WASP\HTTP\DataResponse Provides fluent interface
+     */
+    public function addFileFormat(string $mime_type, string $writer_class)
+    {
+        if (!class_exists($writer_class) || !($writer_class instanceof AbstractWriter))
+        {
+            throw new InvalidArgumentException(
+                "Class {$writer_class} does not exist or does not implement " . AbstractWriter::class
+            );
+        }
+
+        $this->file_formats[$mime_type] = $writer_class;    
+        return $this;
+    }
+
+    /**
+     * Remove a file format from the list.
+     * 
+     * @param string $mime_type The mime type to remove
+     * @return WASP\HTTP\DataResponse Provies fluent interface
+     */
+    public function removeFileFormat(string $mime_type)
+    {
+        unset($this->file_formats[$mime_type];
+        return $this;
+    }
+
+    /**
+     * @return WASP\Util\Dictionary The response data
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
+
+    /**
+     * @return array The list of mime types that can be written
+     */
     public function getMimeTypes()
     {
-        return array_keys(self::$representation_types);
+        return array_keys($this->file_formats);
     }
 
+    /** 
+     * Set the pretty printingin option on the writer
+     * @param bool $pprint True to enable pretty printing, false to disable it
+     * @return WASP\HTTP\DataResponse Provides fluent interface
+     */
+    public function setPrettyPrint(bool $pprint)
+    {
+        $this->pretty_printing = $pprint;
+    }
+
+    /**
+     * Output the response data in the selected format
+     *
+     * @param string $mime The mime type to output
+     */
     public function output(string $mime)
     {
-        $type = isset(self::$representation_types[$mime]) ? self::$representation_types[$mime] : "Null";
-        $classname = "WASP\\IO\\DataWriter\\" . $type . "Writer";
-
-        $config = $this->getRequest()->config;
-        $pprint = $config->getBool('site', 'dev', new DefVal(false));
+        $pprint = $this->pretty_printing;
+        $classname = $this->file_formats[$mime] ?? "NullWriter";
         
         $output = "";
         try 
@@ -84,7 +159,7 @@ class DataResponse extends Response
             {
                 $writer = new $classname($pprint);
                 $op = fopen("php://output", "w");
-                $writer->write($this->dictionary, $op);
+                $writer->write($this->data, $op);
                 fclose($op);
             }
             else
@@ -94,7 +169,7 @@ class DataResponse extends Response
         {
             // Bad. Attempt to override response type if still possible
             self::getLogger()->critical('Could not output data, exception occured while writing: {0}', [$e]);
-            Error::fallbackWriter($this->dictionary, $mime);
+            Error::fallbackWriter($this->data, $mime);
         }
     }
 
