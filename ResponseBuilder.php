@@ -25,14 +25,13 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace WASP\HTTP;
 
-use WASP\AssetManager;
-use WASP\Log\Logger;
-use WASP\Log\DevLogger;
-use WASP\Util\LoggerAwareStaticTrait;
-
 use DateTime;
 use DateInterval;
 use Throwable;
+
+use WASP\Util\LoggerAwareStaticTrait;
+use WASP\Log\DevLogger;
+use WASP\HTTP\AssetManager;
 
 /**
  * Create and output a response
@@ -322,10 +321,7 @@ class ResponseBuilder
 
         // All preparational work is done, time to send stuff to the client
         $this->doOutput($mime);
-    // Bug in xdebug < 2.4.1
-    // @codeCoverageIgnoreStart
     }
-    // @codeCoverageIgnoreEnd
 
     /**
      * This method sends data to the client after all preparational work has

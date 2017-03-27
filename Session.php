@@ -27,8 +27,11 @@ namespace WASP\HTTP;
 
 use DateTime;
 use DateInterval;
-use WASP\HTTP\Error as HTTPError;
+
 use WASP\Util\Dictionary;
+use WASP\Util\Date;
+use WASP\Util\ErrorInterceptor;
+use WASP\HTTP\Error as HTTPError;
 
 class Session extends Dictionary
 {
@@ -350,7 +353,7 @@ class Session extends Dictionary
     }
 
     /** 
-     * Wrap the session_start so that we can catch ErrorExceptions that occure
+     * Wrap the session_start so that we can catch ErrorExceptions that occur
      * when the headers have been sent. This happens mostly on CLI during tests,
      * If in the web, it's a real error.
      *

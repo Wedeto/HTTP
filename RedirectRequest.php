@@ -26,7 +26,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace WASP\HTTP;
 
 use Exception;
-use WASP\TerminateRequest;
 
 /**
  * Provides a way to generate interceptable and testable redirects

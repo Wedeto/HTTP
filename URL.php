@@ -73,14 +73,14 @@ class URL implements \ArrayAccess
             $parts = parse_url($url);
         }
 
-        $scheme   = isset($parts['scheme'])   ? $parts['scheme']   : null;
-        $username = isset($parts['user'])     ? $parts['user']     : null;
-        $password = isset($parts['pass'])     ? $parts['pass']     : null;
-        $host     = isset($parts['host'])     ? $parts['host']     : null;
-        $port     = isset($parts['port'])     ? $parts['port']     : null;
-        $path     = isset($parts['path'])     ? $parts['path']     : '/';
-        $query    = isset($parts['query'])    ? $parts['query']    : null;
-        $fragment = isset($parts['fragment']) ? $parts['fragment'] : null;
+        $scheme   = $parts['scheme']) ?? null;
+        $username = $parts['user']) ?? null;
+        $password = $parts['pass']) ?? null;
+        $host     = $parts['host']) ?? null;
+        $port     = $parts['port']) ?? null;
+        $path     = $parts['path']) ?? '/';
+        $query    = $parts['query']) ?? null;
+        $fragment = $parts['fragment']) ?? null;
 
         if (!$scheme && $host)
             $scheme = $default_scheme;
@@ -100,7 +100,7 @@ class URL implements \ArrayAccess
         );
     }
 
-    public function setPath($path)
+    public function setPath(string $path)
     {
         $query = null;
         $fragment = null;
@@ -122,7 +122,7 @@ class URL implements \ArrayAccess
         return $this->toString();
     }
 
-    public function toString($idn = false)
+    public function toString(bool $idn = false)
     {
         $o = "";
         if (!empty($this->scheme))
@@ -155,7 +155,7 @@ class URL implements \ArrayAccess
         return $o;
     }
 
-    public function setHost($hostname)
+    public function setHost(string $hostname)
     {
         if (($ppos = strrpos($hostname, ":")) !== false)
         {
@@ -171,37 +171,37 @@ class URL implements \ArrayAccess
     }
 
     // ArrayAccess implementation
-    public function offsetGet($offset)
+    public function offsetGet(string $offset)
     {
         return $this->get($offset);
     }
 
-    public function offsetSet($offset, $value)
+    public function offsetSet(string $offset, $value)
     {
         return $this->set($offset, $value);
     }
 
-    public function offsetExists($offset)
+    public function offsetExists(string $offset)
     {
         return property_exists($this, $offset);
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset(string $offset)
     {
         return $this->set($offset, null);
     }
 
-    public function __get($field)
+    public function __get(string $field)
     {
         return $this->get($field);
     }
 
-    public function __set($field, $value)
+    public function __set(string $field, $value)
     {
         return $this->set($field, $value);
     }
 
-    public function set($field, $value)
+    public function set(string $field, $value)
     {
         switch ($field)
         {
@@ -225,7 +225,7 @@ class URL implements \ArrayAccess
         throw new \OutOfRangeException($field);
     }
 
-    public function get($field)
+    public function get(string $field)
     {
         if ($field === "secure")
             return $this->scheme === "https";

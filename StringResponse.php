@@ -38,7 +38,7 @@ class StringResponse extends Response
      * Create using a string
      * @param string $str The output
      */
-    public function __construct($output, $mime = "text/html")
+    public function __construct($output, string $mime = "text/html")
     {
         $this->setOutput($output, $mime);
         $this->code = 200;
@@ -52,7 +52,7 @@ class StringResponse extends Response
      * @param string $mime The mime-type for the content
      * @return StringResponse Provides fluent interface
      */
-    public function setOutput($output, $mime = "text/html")
+    public function setOutput($output, string $mime = "text/html")
     {
         if (
             !is_string($output) && !is_callable($output) 
@@ -73,7 +73,7 @@ class StringResponse extends Response
      * @param string $str The string to add
      * @return StringResponse Provides fluent interface
      */
-    public function append(string $str, $mime = "text/html")
+    public function append(string $str, string $mime = "text/html")
     {
         // To append, we need to make sure we have a string first
         if (empty($this->output[$mime]) || !is_string($this->output[$mime]))
@@ -86,7 +86,7 @@ class StringResponse extends Response
     /**
      * @return string The output
      */
-    public function getOutput($mime = 'text/html')
+    public function getOutput(string $mime = 'text/html')
     {
         // Unknown mime type
         if (empty($this->output[$mime]))

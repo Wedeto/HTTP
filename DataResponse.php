@@ -25,13 +25,13 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace WASP\HTTP;
 
-use WASP\Util\Dictionary;
-use WASP\Log\Logger;
-use WASP\Log\LoggerAwareStaticTrait;
-use WASP\DefVal;
-use WASP\Util\Functions as WF;
 use Throwable;
 use InvalidArgumentException;
+
+use WASP\Util\Dictionary;
+use WASP\Util\LoggerAwareStaticTrait;
+use WASP\Util\DefVal;
+use WASP\Util\Functions as WF;
 
 /**
  * DataResponse represents structured data, such as JSON or XML. The
@@ -97,4 +97,4 @@ class DataResponse extends Response
             Error::fallbackWriter($this->dictionary, $mime);
         }
     }
-}
+

@@ -25,7 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace WASP\HTTP;
 
-use WASP\Log\LoggerAwareStaticTrait;
+use WASP\Util\LoggerAwareStaticTrait;
 
 /**
  * Output a file, given an opened file handle. 
@@ -117,14 +117,10 @@ class FileHandleResponse extends Response
         $bytes = fpassthru($this->filehandle);
         if (!empty($this->length) && $bytes != $this->length)
         {
-            self::$logger->warning(
+            self::getLogger()->warning(
                 "FileHandleResponse was specified to send {0} bytes but {1} were actually transfered of file {2}", 
                 [$this->length, $bytes, $this->output_filename]
             );
         }
     }
 }
-
-// @codeCoverageIgnoreStart
-FileHandleResponse::setLogger();
-// @codeCoverageIgnoreEnd
