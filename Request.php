@@ -25,18 +25,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace WASP\HTTP;
 
-use Throwable;
-use DateTime;
-
+use WASP\Util\Date;
 use WASP\Util\LoggerAwareStaticTrait;
-use WASP\Resolve\Resolver;
 use WASP\Util\Dictionary;
-use WASP\Platform\Path;
-use WASP\Platform\Site;
-use WASP\Platform\VirtualHost;
-use WASP\Platform\TerminateRequest;
-use WASP\Platform\AppRunner;
-use WASP\Platform\Template;
 
 /**
  * Request encapsulates a HTTP request, containing all data transferrred to the
@@ -49,66 +40,24 @@ class Request
 {
     use LoggerAwareStaticTrait;
 
-    /** The accepted types by CLI scripts */
-    public static $CLI_MIME = array(
-        'text/plain' => 1.0,
-        'text/html' => 0.9,
-        'application/json' => 0.8,
-        'application/xml' => 0.7,
-        '*/*' => 0.5
-    );
-
-    /** If the error handler was already set */
-    private static $error_handler_set = false;
-
-    /** The current instance of the Request object */
-    private static $current_request = null;
-
     /** The default language used for responses */
     private static $default_language = 'en';
 
     /** The time at which the request was constructed */
     protected $start_time;
 
-    /** The site configuration */
-    public $config;
-
-    /** The path configuration */
-    public $path;
-
-    /** The server variables */
-    public $server;
-
-    /** The hostname used for the request */
-    public $host;
-
+    /** The request method used for the current request: GET, POST etc */
+    public $method;
+    
     /** The full request URL */
     public $url;
 
     /** The URL from the webroot */
     public $webroot;
 
-    /** The selected app path, based on the route */
-    public $app;
+    /** The server variables */
+    public $server;
 
-    /** 
-     * Suffix / file extension of the requested path. If this is not null, it
-     * was removed from the route and app
-     */
-    public $suffix;
-
-    /** The route specified on the URL */
-    public $route;
-    
-    /** The query parameters specified in the URL */
-    public $query;
-
-    /** The protocol / scheme used to access the script */
-    public $protocol;
-
-    /** If https was used */
-    public $secure;
-    
     /** Whether the request was made using XMLHTTPRequest */
     public $ajax;
 
@@ -118,14 +67,8 @@ class Request
     /** The arguments POST-ed to the script */
     public $post;
 
-    /** The arguments after the selected route */
-    public $url_args;
-
     /** The storage for cookies sent by the client */
     public $cookie;
-    
-    /** The request method used for the current request: GET, POST etc */
-    public $method;
     
     /** Accepted response types indicated by client */
 	public $accept = array();
@@ -142,20 +85,18 @@ class Request
     /** The language the response should use */
     public $language;
 
-    /** The configured sites */
-    public $sites = array();
+    /** The path to the document root / the script containing the entry point */
+    public $docroot;
 
-    /** The selected VirtualHost for this request */
-    public $vhost = null;
-
-    /** The response builder */
-    protected $response_builder = null;
-
-    /** The file / asset resolver */
-    protected $resolver = null;
-
-    /** The template render engine */
-    protected $template = null;
+    public static function createFromGlobals()
+    {
+        return new Request(
+            $_GET,
+            $_POST,
+            $_COOKIE,
+            $_SERVER
+        );
+    }
 
     /*** 
      * Create the request based on the request data provided by webserver and client
@@ -164,18 +105,12 @@ class Request
      * @param array $post The POST parameters
      * @param array $cookie The COOKIE parameters
      * @param array $server The SERVER parameters
-     * @param Path $path The path configuration
-     * @param Dictionary $config The site configuration
-     * @param Resolver $resolver The app, asset and template resolver
      */
     public function __construct(
         array &$get,
         array &$post,
         array &$cookie,
         array &$server,
-        Dictionary $config,
-        Path $path,
-        Resolver $resolver
     )
     {
         self::getLogger();
@@ -183,14 +118,11 @@ class Request
         $this->post = Dictionary::wrap($post);
         $this->cookie = Dictionary::wrap($cookie);
         $this->server = Dictionary::wrap($server);
-        $this->config = $config;
-        $this->path = $path;
-        $this->resolver = $resolver;
 
-        self::$current_request = $this;
         $this->method = $this->server['REQUEST_METHOD'];
-        $this->start_time = $this->server->dget('REQUEST_TIME_FLOAT', time());
+        $this->start_time = Date::createFromFloat($this->server->dget('REQUEST_TIME_FLOAT', time()));
         $this->setUrlFromServerVars();
+        $this->docroot = realpath($_SERVER['SCRIPT_FILENAME']);
 
         $this->ajax = 
             $this->server['HTTP_X_REQUESTED_WITH'] === 'xmlhttprequest' || 
@@ -226,28 +158,6 @@ class Request
     }
 
     /**
-     * @return WASP\Platform\Template The current template renderer
-     */
-    public function getTemplate()
-    {
-        if ($this->template === null)
-            $this->template = new Template($this);
-
-        return $this->template;
-    }
-
-    /**
-     * Set the template object
-     * @param WASP\Platform\Template $tpl The template renderer to use
-     * @return WASP\HTTP\Request Provides fluent interface
-     */
-    public function setTemplate(Template $tpl)
-    {
-        $this->template = $tpl;
-        return $this;
-    }
-
-    /**
      * @return DateTime The start of the script
      */
     public function getStartTime()
@@ -256,108 +166,8 @@ class Request
     }
 
     /**
-     * @return WASP\HTTP\ResponseBuilder The response builder that will produce
-     *                                   the final response to the client
-     */
-    public function getResponseBuilder()
-    {
-        if ($this->response_builder === null)
-            $this->response_builder = new ResponseBuilder($this);
-        return $this->response_builder;
-    }
-
-    /**
-     * @return WASP\Autoload\Resolver The app, template and asset resolver
-     */
-    public function getResolver()
-    {
-        return $this->resolver;
-    }
-
-    /**
-     * Set the resolver used for resolving apps
-     * @param WASP\Resolve\Resolver The resolver
-     * @return WASP\HTTP\Request Provides fluent interface
-     */
-    public function setResolver(Resolver $resolver)
-    {
-        $this->resolver = $resolver;
-        return $this;
-    }
-
-    /**
-     * Run the selected application
-     */
-    public function dispatch()
-    {
-        try
-        {
-            $this->resolveApp();
-            $this->startSession();
-
-            if ($this->route === null)
-                throw new Error(404, 'Could not resolve ' . $this->url);
-
-            $app = new AppRunner($this, $this->app);
-            $app->execute();
-        }
-        catch (Throwable $e)
-        {
-            $rb = $this->getResponseBuilder();
-            $session_cookie = $this->session !== null ? $this->session->getCookie() : null;
-            if ($session_cookie)
-                $rb->addCookie($session_cookie);
-            $rb->setThrowable($e);
-            $rb->respond();
-        }
-    }
-
-    /**
-     * Find out which VirtualHost was targeted and redirect if configuration
-     * requests so.
-     * @throws Throwable Various exceptions depending on the configuration - 
-     *                   Error(404) when the configuration says to prohibit use of
-     *                   unknown hosts, RedirectRequest when a redirect to a different
-     *                   host is requested, RuntimeException when unexpected things happen.
-     */
-    protected function determineVirtualHost()
-    {
-        // Determine the proper VirtualHost
-        $cfg = $this->config->getSection('site');
-        $vhost = self::findVirtualHost($this->webroot, $this->sites);
-        if ($vhost === null)
-        {
-            $result = $this->handleUnknownHost($this->webroot, $this->sites, $cfg);
-            
-            // Handle according to the outcome
-            if ($result === null)
-                throw new Error(404, "Not found: " . $this->url);
-
-            if ($result instanceof URL)
-                throw new RedirectRequest($result, 301);
-
-            if ($result instanceof VirtualHost)
-            {
-                $vhost = $result;
-                $site = $vhost->getSite();
-                if (isset($this->sites[$site->getName()]))
-                    $this->sites[$site->getName()] = $site;
-            }
-            else
-                throw \RuntimeException("Unexpected response from handleUnknownWebsite");
-        }
-        else
-        {
-            // Check if the VirtualHost we matched wants to redirect somewhere else
-            $target = $vhost->getRedirect($this->url);
-            if ($target)
-                throw new RedirectRequest($target, 301);
-        }
-        $this->vhost = $vhost;
-    }
-
-    /**
      * Start the HTTP Session, and initalize the session object
+     * @param WASP\HTTP\Request Provides fluent interface
      */
     public function startSession()
     {
@@ -366,40 +176,18 @@ class Request
             $this->session = new Session($this->vhost->getHost(), $this->config, $this->server);
             $this->session->start();
         }
+        return $this;
     }
 
     /** 
-     * Resolve the app to run based on the incoming URL
+     * Get the HTTP session
      */
-    public function resolveApp()
+    public function getSession()
     {
-        // Determine the correct vhost first
-        $this->determineVirtualHost();
+        if ($this->session === null)
+            $this->startSession();
 
-        // Resolve the application to start
-        $path = $this->vhost->getPath($this->url);
-
-        $resolved = $this->resolver->app($path);
-
-        if ($resolved !== null)
-        {
-            if ($resolved['ext'])
-            {
-                $mime = ResponseTypes::getMimeFromExtension($resolved['ext']);
-                if (!empty($mime))
-                    $this->accept[$mime] = 1.5;
-                $this->suffix = $resolved['ext'];
-            }
-            $this->route = $resolved['route'];
-            $this->app = $resolved['path'];
-            $this->url_args = new Dictionary($resolved['remainder']);
-        }
-        else
-        {
-            $this->route = null;
-            $this->app = null;
-            $this->url_args = new Dictionary();
-        }
+        return $this->session;
     }
 
     /**
@@ -425,6 +213,28 @@ class Request
                 return $priority;
         }
         return false;
+    }
+
+    /**
+     * Check if a specified response type is accepted by the client, and if so,
+     * sets it as the preferred response type. It is therefore assumed that if
+     * you call this function and it returns true, you are going to output
+     * that response type.
+     *
+     * @param string $mime The mime-type of the response that is to be checked
+     * @param string $charset The character set / encoding use for output
+     * @return boolean Whether the request accepts the mime-type as response
+     */
+    public function want($mime, $charset = null)
+    {
+        $priority = $this->isAccepted($mime);
+        if ($priority === false)
+            return false;
+        if (!empty($charset))
+            $mime .= "; charset=" . $charset;
+
+        $this->mime = $mime;
+        return $priority;
     }
 
     /**
@@ -458,27 +268,6 @@ class Request
         }
 
         return $best_type;
-    }
-
-    /**
-     * From the list of availble responses, output the one that's preferred by
-     * the client.  While it is of course possible to prepare all outputs
-     * directly, a more efficient method is to provide a list of objects with
-     * a __tostring() method that generates the response on demand.
-     *
-     * @param array $available A list of mime => output types.
-     */
-    public function outputBestResponseType(array $available)
-    {
-        $types = array_keys($available);
-        $type = $this->getBestResponseType($types);
-        
-        if (!headers_sent())
-        {
-            // @codeCoverageIgnoreStart
-            header("Content-type: " . $type);
-            // @codeCoverageIgnoreEnd
-        }
     }
 
     /**
@@ -547,28 +336,6 @@ class Request
     }
 
     /**
-     * Check if a specified response type is accepted by the client, and if so,
-     * sets it as the preferred response type. It is therefore assumed that if
-     * you call this function and it returns true, you are going to output
-     * that response type.
-     *
-     * @param string $mime The mime-type of the response that is to be checked
-     * @param string $charset The character set / encoding use for output
-     * @return boolean Whether the request accepts the mime-type as response
-     */
-    public function want($mime, $charset = null)
-    {
-        $priority = $this->isAccepted($mime);
-        if ($priority === false)
-            return false;
-        if (!empty($charset))
-            $mime .= "; charset=" . $charset;
-
-        $this->mime = $mime;
-        return $priority;
-    }
-
-    /**
      * Select the preferred reponse type based on a list of response types.
      * The response types should be provided in preference of the script, if any.
      * These are then matched with the accepted response types by the client,
@@ -590,116 +357,6 @@ class Request
         return $best;
     }
 
-
-    /**
-     * Find the VirtualHost matching the provided URL.
-     * @param URL $url The URL to match
-     * @param array $sites A list of Site objects from which the correct
-     *                     VirtualHost should be extracted.
-     * @return VirtualHost The correct VirtualHost. Null if not found.
-     */
-    public static function findVirtualHost(URL $url, array $sites)
-    {
-        foreach ($sites as $site)
-        {
-            $vhost = $site->match($url);
-            if ($vhost !== null)
-                return $vhost;
-        }
-        return null;
-    }
-
-    /**
-     * Determine what to do when a request was made to an unknown host.
-     * 
-     * The default configuration is IGNORE, which means that a new vhost will be
-     * generated on the fly and attached to the site of the closest matching VirtualHost.
-     * If no site is configured either, a new Site named 'defaul't is created and the new
-     * VirtualHost is attached to that site. This makes configuration non-required for 
-     * simple sites with one site and one hostname.
-     * 
-     * @param URL $url The URL that was requested
-     * @param array $sites The configured sites
-     * @param Dictionary $cfg The configuration to get the policy from
-     * @return mixed One of:
-     *               * null: if the policy is to error out on unknown hosts
-     *               * URI: if the policy is to redirect to the closest matching host
-     *               * VirtualHost: if the policy is to ignore / accept unknown hosts
-     */
-    public static function handleUnknownHost(URL $webroot, array $sites, Dictionary $cfg)
-    {
-        // Determine behaviour on unknown host
-        $on_unknown = strtoupper($cfg->dget('unknown_host_policy', "IGNORE"));
-        $best_matching = self::findBestMatching($webroot, $sites);
-
-        if ($on_unknown === "ERROR" || ($best_matching === null && $on_unknown === "REDIRECT"))
-            return null;
-
-        if ($on_unknown === "REDIRECT")
-        {
-            $redir = $best_matching->URL($webroot->path);
-            return $redir;
-        }
-
-        // Generate a proper VirtualHost on the fly
-        $url = new URL($webroot);
-        $url->fragment = null;
-        $url->query = null;
-        $vhost = new VirtualHost($url, self::$default_language);
-
-        // Add the new virtualhost to a site.
-        if ($best_matching === null)
-        {
-            // If no site has been defined, create a new one
-            $site = new Site();
-            $site->addVirtualHost($vhost);
-        }
-        else
-            $best_matching->getSite()->addVirtualHost($vhost);
-
-        return $vhost;
-    }
-
-    /**
-     * Find the best matching VirtualHost. In case the URL used does not
-     * match any defined VirtualHost, this function will find the VirtualHost
-     * that matches the URL as close as possible, in an attempt to guess at
-     * which information the visitor is interested.
-     *
-     * @param URL $url The URL that was requested
-     * @param array $sites The configured sites
-     * @return VirtualHost The best matching VirtualHost in text similarity.
-     */ 
-    public static function findBestMatching(URL $url, array $sites)
-    {
-        $vhosts = array();
-        foreach ($sites as $site)
-            foreach ($site->getVirtualHosts() as $vhost)
-                $vhosts[] = $vhost;
-
-        // Remove query and fragments from the URL in use
-        $my_url = new URL($url);
-        $my_url->set('query', null)->set('fragment', null)->toString();
-
-        // Match the visited URL with all vhosts and calcualte their textual similarity
-        $best_percentage = 0;
-        $best_idx = null;
-        foreach ($vhosts as $idx => $vhost)
-        {
-            $host = $vhost->getHost()->toString();
-            similar_text($my_url, $host, $percentage);
-            if ($best_idx === null || $percentage > $best_percentage)
-            {
-                $best_idx = $idx;
-                $best_percentage = $percentage;
-            }
-        }
-        
-        // Return the best match, or null if none was found.
-        if ($best_idx === null)
-            return null;
-        return $vhosts[$best_idx];
-    }
 
     /**
      * @return boolean True when the script is run from CLI, false if run from webserver

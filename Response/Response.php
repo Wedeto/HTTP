@@ -23,38 +23,16 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP;
+namespace WASP\HTTP\Response;
+
+use WASP\HTTP\Request;
 
 abstract class Response extends \Exception
 {
-    /** 
-     * A reference to the request obejct
-     */
-    protected $request = null;
-
     /**
      * Available response mime types
      */
     protected $mime = array();
-
-    /** 
-     * Set the request associated to this response 
-     * @return WASP\HTTP\Response Provides fluent interface
-     */
-    public function setRequest(Request $request)
-    {
-        $this->request = $request;
-        return $this;
-    }
-
-    /**
-     * Return the associated request. If none was set, the default is returned.
-     * @return WASP\HTTP\Request The associated request
-     */
-    public function getRequest()
-    {
-        return $this->request;
-    }
 
     /**
      * @return int The HTTP Status code
@@ -98,19 +76,6 @@ abstract class Response extends \Exception
     public function getHeaders()
     {
         return array();
-    }
-
-    /**
-     * The ResponseBuilder will call this before running hooks, to allow
-     * the response to restructure itself to a DataResponse or StringResponse
-     * which allows injectors or modifiers to work on the response. In case
-     * a transformation is not appropriate, null can be returned.
-     *
-     * @param string $mime The mime-type of the final response
-     */
-    public function transformResponse(string $mime)
-    {
-        return null;
     }
 
     /**

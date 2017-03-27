@@ -23,7 +23,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP;
+namespace WASP\HTTP\Response;
 
 use WASP\Util\Functions as WF;
 use WASP\Util\LoggerAwareStaticTrait;
@@ -31,7 +31,7 @@ use WASP\Util\DefVal;
 
 /**
  * Output a file, given its filename. The handler may decide to output the
- * file using X-Send-File header, or by opening the file and passing the
+ * file using X-SendFile header, or by opening the file and passing the
  * contents.
  */
 class FileResponse extends Response
@@ -95,6 +95,29 @@ class FileResponse extends Response
     }
 
     /**
+     * Enable or disable use of X-Sendfile header. When this is enabled,
+     * the file will be pointed to by X-Sendfile, from which it is assumed
+     * the webserver will handle the file transfer. When this is disabled,
+     * the file will be output by this script.
+     * 
+     * @param bool $use True to use X-Sendfile, false to send directly
+     * @return WASP\HTTP\Response\FileResponse Provides fluent interface
+     */
+    public function setUseXSendFile(bool $use)
+    {
+        $this->xsendfile = $use;
+        return $this;
+    }
+
+    /**
+     * @return bool True if X-Sendfile is used, false if not
+     */
+    public function getUseXSendFile()
+    {
+        return $this->xsendfile;
+    }
+
+    /**
      * @return array The relevant headers
      */
     public function getHeaders()
@@ -107,13 +130,8 @@ class FileResponse extends Response
         if ($this->length)
             $h['Content-Length'] = $this->length;
 
-        $request = $this->getRequest();
-        $config = $request->config;
-        if ($this->xsendfile = WF::parse_bool($config->get('io', 'use_send_file', new DefVal(false))))
-        {
+        if ($this->xsendfile)
             $h['X-Sendfile'] = $this->filename;
-            $this->xsendfile = true;
-        }
 
         return $h;
     }

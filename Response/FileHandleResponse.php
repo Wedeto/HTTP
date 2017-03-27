@@ -23,7 +23,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP;
+namespace WASP\HTTP\Response;
 
 use WASP\Util\LoggerAwareStaticTrait;
 
@@ -45,7 +45,6 @@ class FileHandleResponse extends Response
 
     /** The length in bytes of the content being served */
     protected $length = null;
-
 
     /**
      * Create the response using the file name

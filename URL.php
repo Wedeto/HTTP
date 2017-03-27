@@ -237,8 +237,27 @@ class URL implements \ArrayAccess
             if ($this->scheme === "ftp") return 21;
         }
 
+        if ($field === "suffix")
+            return $this->getSuffix();
+
         if (property_exists($this, $field))
             return $this->$field;
         throw new \OutOfRangeException($field);
+    }
+
+    public function getSuffix()
+    {
+        $path = $this->path ?: "";
+        for ($i = strlen($path - 1); $i >= 0; --$i)
+        {
+            $ch = substr($path, $i, 1);
+            if ($ch === '/')
+                return null;
+            
+            $pch = $i > 0 ? substr($path, $i - 1, 1) : null;
+            if ($ch === '.' && $pch !== '/')
+                return substr($path, $i);
+        }
+        return null;
     }
 }

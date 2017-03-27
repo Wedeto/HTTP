@@ -25,18 +25,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace WASP\HTTP;
 
-use DateTime;
-use DateInterval;
-use Throwable;
-
 use WASP\Util\LoggerAwareStaticTrait;
-use WASP\Log\DevLogger;
-use WASP\HTTP\AssetManager;
+use WASP\Util\Hook;
+use WASP\IO\MimeTypes;
+use WASP\HTTP\Response\Response;
 
 /**
  * Create and output a response
  */
-class ResponseBuilder
+class Responder
 {
     use LoggerAwareStaticTrait;
 
@@ -55,12 +52,6 @@ class ResponseBuilder
     /** The response to send to the client */
     protected $response = null;
 
-    /** The hooks to execute before outputting the response */
-    protected $hooks = array();
-
-    /** The asset manager manages injection of CSS and JS script inclusion */
-    protected $asset_manager = null;
-
     /**
      * Create the response to a Request
      * @param Request $request The request this is the response to
@@ -69,40 +60,24 @@ class ResponseBuilder
     {
         self::getLogger();
         $this->request = $request;
-
-        // Check for a Dev-logger
-        $devlogger = DevLogger::getInstance();
-        if ($devlogger)
-            $this->addHook(new DevLogHook($devlogger));
-
-        $this->asset_manager = new AssetManager($request);
-        $this->addHook($this->asset_manager);
-
-        $cfg = $request->config;
-        if ($cfg !== null)
-        {
-            $this->asset_manager->setMinified(!$cfg->dget('site', 'dev', false));
-            $this->asset_manager->setTidy($cfg->dget('site', 'tidy-output', false));
-        }
     }
 
     /**
-     * Set the response by any throwable object. Any non-Response objects are wrapped
-     * in a WASP\HTTP\Error with status code 500.
-     *
-     * @return WASP\HTTP\ResponseBuilder Provides fluent interface
+     * @return WASP\HTTP\Request The HTTP Request instance
      */
-    public function setThrowable(Throwable $exception)
+    public function getRequest()
     {
-        if (!($exception instanceof Response))
-        {
-            self::getLogger()->error("Exception: {exception}", ["exception" => $exception]);
+        return $this->request;
+    }
 
-            // Wrap the error in a HTTP Error 500
-            $exception = new Error(500, "An error occured", $user_message = "", $exception);
-        }
-
-        $this->setResponse($exception);
+    /**
+     * Set the request instance
+     * @param Request $request The HTTP Request instance
+     * @return WASP\HTTP\Responder Provides fluent interface
+     */
+    public function setRequest(Request $request)
+    {
+        $this->request = $request;
         return $this;
     }
 
@@ -111,7 +86,7 @@ class ResponseBuilder
      *
      * @param Response $response The final response
      */
-    protected function setResponse(Response $response)
+    public function setResponse(Response $response)
     {
         $this->response = $response;
         $response->setRequest($this->request);
@@ -124,14 +99,6 @@ class ResponseBuilder
     public function getResponse()
     {
         return $this->response;
-    }
-
-    /**
-     * @return WASP\AssetManager The asset manager for scripts and CSS
-     */
-    public function getAssetManager()
-    {
-        return $this->asset_manager;
     }
 
     /**
@@ -182,14 +149,14 @@ class ResponseBuilder
      * Set the HTTP Response code
      *
      * @param int $code The HTTP response code
-     * @return WASP\HTTP\ResponseBuilder Provides fluent interface
+     * @return WASP\HTTP\Responder Provides fluent interface
      */
     public function setResponseCode(int $code)
     {
         if ($code < 100 || $code > 599)
         {
             $err = new \InvalidArgumentException("Attempting to set status code to $code");
-            self::getLogger()->critical("Invalid status {0}: {1}", [$code, $err]);
+            self::$logger->critical("Invalid status {0}: {1}", [$code, $err]);
             $this->response_code = 500;
         }
         else
@@ -208,20 +175,9 @@ class ResponseBuilder
     }
 
     /**
-     * Add a hook to the ResponseHooks - these hooks will be executed just
-     * before output begins. This can be used to inject or modify output.
-     * @param ResponseHookInterface $hook The hook to add
-     */
-    public function addHook(ResponseHookInterface $hook)
-    {
-        $this->hooks[] = $hook;
-        return $this;
-    }
-
-    /**
      * Close all active output buffers and log their contents
      */
-    public function endAllOutputBuffers($lvl = 0)
+    protected function endAllOutputBuffers($lvl = 0)
     {
         $ob_cnt = 0;
         while (ob_get_level() > $lvl)
@@ -230,11 +186,14 @@ class ResponseBuilder
             $contents = ob_get_contents();
             ob_end_clean();
         
+            if (self::$logger instanceof \Psr\Log\NullLogger)
+                continue;
+
             $lines = explode("\n", $contents);
             foreach ($lines as $n => $line)
             {
                 if (!empty($line))
-                    self::getLogger()->debug("Script output: {0}/{1}: {2}", [$ob_cnt, $n + 1, $line]);
+                    self::$logger->debug("Script output: {0}/{1}: {2}", [$ob_cnt, $n + 1, $line]);
             }
         }
     }
@@ -276,41 +235,28 @@ class ResponseBuilder
         if (empty($mime) || !$this->request->isAccepted($mime))
         {
             $mime = 'text/html';
-            $this->response = new Error(406, "Not Acceptable", td('No acceptable response can be offered', 'core'));
+            $this->response = new Error(406, "Not Acceptable", td('No acceptable response can be offered', 'WASP.HTTP'));
         }
-
-        $mime_charset = $mime;
-        if (ResponseTypes::isPlainText($mime))
-            $mime_charset .= '; charset=utf-8';
-
-        $this->setHeader('Content-Type', $mime_charset);
-            
-        // Allow the Response to transform itself into a different response,
-        // e.g. the ErrorResponse will want to produce DataOutput or StringOutput
-        // depending on the mime type.
-        try
-        {
-            $transformed = $this->response->transformResponse($mime);
-            if ($transformed instanceof Response)
-                $this->response = $transformed;
-        }
-        catch (Throwable $e)
-        {} // Proceed unmodified
 
         // Execute hooks
-        foreach ($this->hooks as $hook)
-        {
-            try
-            {
-                $hook->executeHook($this->request, $this->response, $mime);
-            }
-            catch (Throwable $e)
-            {
-                self::getLogger()->alert('Error while running hooks: {0}', [$e]);
-                $this->response = new Error(500, "Error while running hooks", $e);
-                $this->response = $this->response->transformResponse($mime);
-            }
-        }
+        $hook_params = [
+            'responder' => $this
+            'request' => $this->request,
+            'mime' => $mime,
+        ];
+
+        $hook_params = Hook::execute('WASP.HTTP.Responder.Respond', $hook_params);
+
+        // Check if mime type was updated
+        if (is_string($hook_params['mime']))
+            $mime_charset = $hook_params['mime'];
+
+        $mime_charset = $mime;
+        if (MimeTypes::isPlainText($mime))
+            $mime_charset .= '; charset=utf-8';
+
+        // Set mime type
+        $this->setHeader('Content-Type', $mime_charset);
 
         // Add headers from response to the final response
         foreach ($this->response->getHeaders() as $key => $value)
@@ -359,13 +305,13 @@ class ResponseBuilder
             }
         }
         else
-            self::getLogger()->critical('Headers were already sent when ResponseBuilder wants to send them');
+            self::$logger->critical('Headers were already sent when Responder wants to send them');
 
         // Perform output
         $this->response->output($mime);
 
         // We're done
-        self::getLogger()->debug("** Finished processing request to {0}", [$this->request->url]);
+        self::$logger->debug("** Finished processing request to {0}", [$this->request->url]);
         die();
     }
 }
