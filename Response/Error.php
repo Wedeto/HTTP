@@ -64,7 +64,7 @@ class Error extends Response
     public function getResponse()
     {
         if (empty($this->response))
-            $this->response = new StringResponse(WF::str($this->getPrevious()), "text/html");
+            $this->response = new StringResponse(WF::str($this->getPrevious()), "text/plain");
 
         return $this->response;
     }
@@ -95,7 +95,6 @@ class Error extends Response
      */
     public function output(string $mime)
     {
-        $response = $this->getResponse();
-        return $response->output($mime);
+        $this->getResponse()->output($mime);
     }
 }
