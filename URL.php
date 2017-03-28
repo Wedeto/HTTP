@@ -73,14 +73,14 @@ class URL implements \ArrayAccess
             $parts = parse_url($url);
         }
 
-        $scheme   = $parts['scheme']) ?? null;
-        $username = $parts['user']) ?? null;
-        $password = $parts['pass']) ?? null;
-        $host     = $parts['host']) ?? null;
-        $port     = $parts['port']) ?? null;
-        $path     = $parts['path']) ?? '/';
-        $query    = $parts['query']) ?? null;
-        $fragment = $parts['fragment']) ?? null;
+        $scheme   = $parts['scheme'] ?? null;
+        $username = $parts['user'] ?? null;
+        $password = $parts['pass'] ?? null;
+        $host     = $parts['host'] ?? null;
+        $port     = $parts['port'] ?? null;
+        $path     = $parts['path'] ?? '/';
+        $query    = $parts['query'] ?? null;
+        $fragment = $parts['fragment'] ?? null;
 
         if (!$scheme && $host)
             $scheme = $default_scheme;
@@ -171,22 +171,22 @@ class URL implements \ArrayAccess
     }
 
     // ArrayAccess implementation
-    public function offsetGet(string $offset)
+    public function offsetGet($offset)
     {
         return $this->get($offset);
     }
 
-    public function offsetSet(string $offset, $value)
+    public function offsetSet($offset, $value)
     {
         return $this->set($offset, $value);
     }
 
-    public function offsetExists(string $offset)
+    public function offsetExists($offset)
     {
         return property_exists($this, $offset);
     }
 
-    public function offsetUnset(string $offset)
+    public function offsetUnset($offset)
     {
         return $this->set($offset, null);
     }

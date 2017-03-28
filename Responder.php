@@ -89,7 +89,6 @@ class Responder
     public function setResponse(Response $response)
     {
         $this->response = $response;
-        $response->setRequest($this->request);
         return $this;
     }
 
@@ -240,7 +239,7 @@ class Responder
 
         // Execute hooks
         $hook_params = [
-            'responder' => $this
+            'responder' => $this,
             'request' => $this->request,
             'mime' => $mime,
         ];

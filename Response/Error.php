@@ -84,7 +84,7 @@ class Error extends Response
     public function setResponse(Response $response)
     {
         if ($response instanceof Error)
-            throw new \InvalidArgumentException("Cannot chain error responses");
+            throw new \InvalidArgumentException("Cannot chain error responses: " . WF::str($response));
 
         $this->response = $response;
     }

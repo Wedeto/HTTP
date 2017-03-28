@@ -110,7 +110,7 @@ class Request
         array &$get,
         array &$post,
         array &$cookie,
-        array &$server,
+        array &$server
     )
     {
         self::getLogger();
@@ -131,10 +131,6 @@ class Request
         $this->remote_ip = $this->server->get('REMOTE_ADDR');
         $this->remote_host = !empty($this->remote_ip) ? gethostbyaddr($this->remote_ip) : null;
         $this->accept = self::parseAccept($this->server->dget('HTTP_ACCEPT', ''));
-
-        // Set up the site configuration
-        $cfg = $this->config->getSection('site');
-        $this->sites = Site::setupSites($cfg);
     }
 
     /**
@@ -169,11 +165,11 @@ class Request
      * Start the HTTP Session, and initalize the session object
      * @param WASP\HTTP\Request Provides fluent interface
      */
-    public function startSession()
+    public function startSession(URL $domain, Dictionary $config)
     {
         if ($this->session === null)
         {
-            $this->session = new Session($this->vhost->getHost(), $this->config, $this->server);
+            $this->session = new Session($domain, $config, $this->server);
             $this->session->start();
         }
         return $this;
