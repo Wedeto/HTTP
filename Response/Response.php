@@ -26,6 +26,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace WASP\HTTP\Response;
 
 use WASP\HTTP\Request;
+use WASP\HTTP\CachePolicy;
 
 abstract class Response extends \Exception
 {
@@ -33,6 +34,11 @@ abstract class Response extends \Exception
      * Available response mime types
      */
     protected $mime = array();
+
+    /**
+     * The cache policy for this response
+     */
+    protected $cache_policy = null;
 
     /**
      * @return int The HTTP Status code
@@ -76,6 +82,25 @@ abstract class Response extends \Exception
     public function getHeaders()
     {
         return array();
+    }
+
+    /**
+     * Set the cache policy for this response
+     * @param CachePolicy $policy The policy to set
+     * @return WASP\HTTP\Response\Response Provides fluent interface
+     */
+    public function setCachePolicy(CachePolicy $policy)
+    {
+        $this->cache_policy = $policy;
+        return $this;
+    }
+
+    /**
+     * @return CachePolicy The configured CachePolicy. Null if not set
+     */
+    public function getCachePolicy()
+    {
+        return $this->cache_policy;
     }
 
     /**

@@ -52,6 +52,9 @@ class Responder
     /** The response to send to the client */
     protected $response = null;
 
+    /** The caching policy */
+    protected $cache_policy = null;
+
     /**
      * Create the response to a Request
      * @param Request $request The request this is the response to
@@ -89,7 +92,31 @@ class Responder
     public function setResponse(Response $response)
     {
         $this->response = $response;
+        $cp = $response->getCachePolicy();
+        if ($cp !== null)
+            $this->setCachePolicy($cp);
+
         return $this;
+    }
+
+    /** 
+     * Set the Cache Policy object
+     *
+     * @param CachePolicy $policy The policy
+     * @return WAPS\HTTP\Responder Provides fluent interface
+     */
+    public function setCachePolicy(CachePolicy $policy)
+    {
+        $this->cache_policy = $policy;
+        return $this;
+    }
+
+    /**
+     * @return Cache Policy The active cache policy object. Null if none was set
+     */
+    public function getCachePolicy()
+    {
+        return $this->cache_policy;
     }
 
     /**
@@ -260,6 +287,12 @@ class Responder
         // Add headers from response to the final response
         foreach ($this->response->getHeaders() as $key => $value)
             $this->setHeader($key, $value);
+
+        if ($this->cache_policy !== null)
+        {
+            foreach ($this->cache_policy->getHeaders() as $key => $value)
+                $this->setHeader($key, $value);
+        }
         
         // Store the response code
         $this->setResponseCode($this->response->getStatusCode());
