@@ -27,18 +27,17 @@ namespace Wedeto\HTTP;
 
 use PHPUnit\Framework\TestCase;
 
-use Wedeto\Platform\System;
-use Wedeto\AssetManager;
 use Wedeto\Log\Logger;
 use Wedeto\Log\MemLogger;
+use Wedeto\HTTP\Response\Response;
 
 use Throwable;
 use RuntimeException;
 
 /**
- * @covers Wedeto\HTTP\ResponseBuilder
+ * @covers Wedeto\HTTP\Responder
  */
-final class ResponseBuilderTest extends TestCase
+final class ResponderTest extends TestCase
 {
     private $rb;
     private $config;
@@ -51,16 +50,16 @@ final class ResponseBuilderTest extends TestCase
         $this->config->set('site', 'tidy-output', true);
 
         $this->request = System::request();
-        $this->rb = new ResponseBuilder($this->request);
+        $this->rb = new Responder($this->request);
     }
 
     public function tearDown()
     {
-        $logger = Logger::getLogger(ResponseBuilder::class);
+        $logger = Logger::getLogger(Responder::class);
         $logger->removeLogHandlers();
     }
 
-    public function testResponseBuilder()
+    public function testResponder()
     {
         $cookie = new Cookie('foo', 'bar');
         $this->rb->addCookie($cookie);
@@ -83,7 +82,7 @@ final class ResponseBuilderTest extends TestCase
 
     public function testEndOutputBuffers()
     {
-        $logger = Logger::getLogger(ResponseBuilder::class);
+        $logger = Logger::getLogger(Responder::class);
         $devlogger = new DevLogger("debug");
         $logger->addLogHandler($devlogger);
 
@@ -107,7 +106,7 @@ final class ResponseBuilderTest extends TestCase
 
     public function testInvalidResponseCode()
     {
-        $logger = Logger::getLogger(ResponseBuilder::class);
+        $logger = Logger::getLogger(Responder::class);
         $devlogger = new DevLogger("debug");
         $logger->addLogHandler($devlogger);
 
@@ -154,7 +153,7 @@ final class ResponseBuilderTest extends TestCase
     public function testRespond()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponseBuilder($this->request);
+        $this->rb = new MockResponder($this->request);
 
         $thr = new \InvalidArgumentException('foobar');
         $this->rb->setThrowable($thr);
@@ -188,7 +187,7 @@ final class ResponseBuilderTest extends TestCase
     public function testRespondNoResponse()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponseBuilder($this->request);
+        $this->rb = new MockResponder($this->request);
 
         try
         {
@@ -210,7 +209,7 @@ final class ResponseBuilderTest extends TestCase
     public function testRespondEmptyResponse()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponseBuilder($this->request);
+        $this->rb = new MockResponder($this->request);
         $resp = new MockResponseResponse(array(), new RuntimeException('foo'));
         $this->rb->setThrowable($resp);
 
@@ -228,7 +227,7 @@ final class ResponseBuilderTest extends TestCase
     public function testTransformResponseFails()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponseBuilder($this->request);
+        $this->rb = new MockResponder($this->request);
         $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
         $resp->fail_transform = true;
         $this->rb->setThrowable($resp);
@@ -241,36 +240,13 @@ final class ResponseBuilderTest extends TestCase
         {
             $this->assertEquals('application/json', $response->mime);
         }
-        ob_start(); // It will have closed PHPUnits output buffer ;-)
-    }
-
-    public function testBadHookThrows()
-    {
-        $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponseBuilder($this->request);
-        $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
-        $resp->fail_transform = true;
-        $this->rb->setThrowable($resp);
-        $this->rb->addHook(new MockResponseHook);
-
-        try
-        {
-            $this->rb->respond();
-        }
-        catch (MockResponseResponse $response)
-        {
-            $this->assertEquals('application/json', $response->mime);
-            $prev = $response->getPrevious();
-            $this->assertInstanceOf(DataResponse::class, $prev);
-        }
-
         ob_start(); // It will have closed PHPUnits output buffer ;-)
     }
 
     public function testResponseSetCustomHeaders()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponseBuilder($this->request);
+        $this->rb = new MockResponder($this->request);
         $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
         $this->rb->setThrowable($resp);
 
@@ -327,18 +303,10 @@ class MockResponseResponse extends Response
     {}
 }
 
-class MockResponseBuilder extends ResponseBuilder
+class MockResponder extends Responder
 {
     protected function doOutput(string $mime)
     {
         throw new MockResponseResponse($mime, $this->response);
-    }
-}
-
-class MockResponseHook implements ResponseHookInterface
-{
-    public function executeHook(Request $request, Response $response, string $mime)
-    {
-        throw RuntimeException("Failed");
     }
 }

@@ -26,10 +26,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace Wedeto\HTTP;
 
 use PHPUnit\Framework\TestCase;
+
 use Wedeto\Log\Logger;
 use Wedeto\Log\MemLogger;
 use Wedeto\IO\Dir;
-use Wedeto\Platform\System;
 
 /**
  * @covers Wedeto\HTTP\FileResponse
@@ -43,7 +43,6 @@ final class FileResponseTest extends TestCase
 
     public function setUp()
     {
-        $cpath = System::path();
         $this->path = $cpath->var . '/test';
         Dir::mkdir($this->path);
         $this->file = tempnam($this->path, 'fileresponse');
@@ -126,8 +125,8 @@ final class FileResponseTest extends TestCase
     public function testFileDownloadInvalidLength()
     {
         $logger = Logger::getLogger(FileResponse::class);
-        $devlogger = new DevLogger("debug");
-        $logger->addLogHandler($devlogger);
+        $memlogger = new MemLogger("debug");
+        $logger->addLogHandler($memlogger);
 
         $a = new FileResponse($this->file, 'foobar.txt', true);
 
@@ -149,7 +148,7 @@ final class FileResponseTest extends TestCase
         $this->assertEquals('foobarbaz', $actual);
 
 		// Validate length error message
-		$log = $devlogger->getLog();
+		$log = $memlogger->getLog();
 		$this->assertEquals(['   WARNING: FileResponse promised to send 6 bytes but 9 were actually transfered of file foobar.txt'], $log);
     }
 

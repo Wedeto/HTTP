@@ -23,22 +23,17 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto\HTTP;
+namespace Wedeto\HTTP\Response;
 
 use PHPUnit\Framework\TestCase;
-use Wedeto\Template;
-use Wedeto\System;
+
+use Wedeto\HTTP\Request;
 
 /**
  * @covers Wedeto\HTTP\Error
  */
 final class HTTPErrorTest extends TestCase
 {
-    public function tearDown()
-    {
-        System::getInstance()->request = null;
-    }
-
     /**
      * @covers Wedeto\HTTP\Error::__construct
      * @covers Wedeto\HTTP\Error::getUserMessage
@@ -61,44 +56,6 @@ final class HTTPErrorTest extends TestCase
         $this->assertContains('application/xml', $actual);
         $this->assertContains('text/html', $actual);
         $this->assertContains('text/plain', $actual);
-    }
-
-    public function testTransformReponse()
-    {
-        $a = new Error(500, "Error");
-
-        $request = System::request();
-        $tpl = new MockErrorTemplate($request);
-        $tpl->throw_other = false;
-        $request->setTemplate($tpl);
-
-        $response = $a->transformResponse('application/json');
-        $this->assertInstanceOf(DataResponse::class, $response);
-
-        $response = $a->transformResponse('application/xml');
-        $this->assertInstanceOf(DataResponse::class, $response);
-
-        $response = $a->transformResponse('text/html');
-        $this->assertInstanceOf(StringResponse::class, $response);
-
-        $response = $a->transformResponse('text/plain');
-        $this->assertInstanceOf(StringResponse::class, $response);
-    }
-
-    public function testTransformReponseWithException()
-    {
-        $request = System::request();
-        $tpl = new MockErrorTemplate($request);
-        $tpl->throw_other = true;
-        $request->setTemplate($tpl);
-
-        $a = new Error(500, "Error");
-        $response = $a->transformResponse('text/html');
-        $this->assertInstanceOf(StringResponse::class, $response);
-
-        $a = new Error(500, "Error");
-        $response = $a->transformResponse('text/plain');
-        $this->assertInstanceOf(StringResponse::class, $response);
     }
 
     public function testFallbackWriter()
@@ -142,9 +99,7 @@ EOT;
 
     public function testOutput()
     {
-        $request = System::request();
-        $tpl = new MockErrorTemplate($request);
-        $request->setTemplate($tpl);
+        $request = Request::createFromGlobals();
 
         $a = new Error(500, 'Internal Server Error');
         
@@ -177,18 +132,5 @@ EOT;
         $actual = json_decode($actual, true);
         $this->assertEquals('Internal Foo Error', $actual['message']);
         $this->assertEquals(500, $actual['status_code']);
-    }
-}
-
-class MockErrorTemplate extends Template
-{
-    public $throw_other = false;
-
-    public function render()
-    {
-        if ($this->throw_other)
-            throw new \RuntimeException($this->template_path);
-
-        throw new StringResponse('template render message', $this->mime);
     }
 }
