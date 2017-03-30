@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,7 +23,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP;
+namespace Wedeto\HTTP;
 
 use DateTime;
 use DateInterval;
@@ -72,7 +72,7 @@ class Cookie
     /**
      * Set the name of the cookie
      * @param string $name The name of the cookie
-     * @return WASP\HTTP\Cookie Provides fluent interface
+     * @return Wedeto\HTTP\Cookie Provides fluent interface
      */
     public function setName(string $name)
     {
@@ -91,7 +91,7 @@ class Cookie
     /**
      * Set the value for the cookie
      * @param string $value The value
-     * @return WASP\HTTP\Cookie Provides fluent interface
+     * @return Wedeto\HTTP\Cookie Provides fluent interface
      */
     public function setValue(string $value)
     {
@@ -111,7 +111,7 @@ class Cookie
      * Set the HTTPOnly flag: whether to sent this cookie only on HTTP requests
      * or also expose it to scripts.
      * @param bool $httponly Value for HTTPOnly
-     * @return WASP\HTTP\Cookie Provides fluent interface
+     * @return Wedeto\HTTP\Cookie Provides fluent interface
      */
     public function setHTTPOnly(bool $httponly)
     {
@@ -131,7 +131,7 @@ class Cookie
     /**
      * Set the secure flag: whether to transfer the cookie over HTTPS only
      * @param bool $secure The secure flag
-     * @return WASP\HTTP\Cookie Provides fluent interface
+     * @return Wedeto\HTTP\Cookie Provides fluent interface
      */
     public function setSecure(bool $secure)
     {
@@ -150,7 +150,7 @@ class Cookie
      * Set the cookie domain: hostnames where the cookie should be sent by the
      * client. It will also be sent to subdomains.
      * @param string $domain The cookie domain
-     * @return WASP\HTTP\Cookie Provides fluent interface
+     * @return Wedeto\HTTP\Cookie Provides fluent interface
      */ 
     public function setDomain(string $domain)
     {
@@ -169,7 +169,7 @@ class Cookie
 
     /**
      * Set the domain and path using a URL
-     * @param WASP\HTTP\URL The URI to use as the cookie domain
+     * @param Wedeto\HTTP\URL The URI to use as the cookie domain
      */
     public function setURL(URL $url)
     {
@@ -188,7 +188,7 @@ class Cookie
      * Set the Cookie path: the path at or under which the client should sent
      * this cookie. Paths with a different prefix will not receive the cookie. 
      * @param string $path The cookie path
-     * @return WASP\HTTP\Cookie Provides fluent interface
+     * @return Wedeto\HTTP\Cookie Provides fluent interface
      */
     public function setPath(string $path)
     {
@@ -209,7 +209,7 @@ class Cookie
     /**
      * Set expiry date by a DateInterval, relative to the current time
      * @param DateInterval $interval After how much time the cookie should expire
-     * @return WASP\HTTP\Cookie Provides fluent interface
+     * @return Wedeto\HTTP\Cookie Provides fluent interface
      */
     public function setExpiresIn(DateInterval $interval)
     {
@@ -221,7 +221,7 @@ class Cookie
     /**
      * Set the expiry date by a DateTime, the moment when the cookie will expire
      * @param DateTime The date to use as expiry date
-     * @return WASP\HTTP\Cookie Provides fluent interface
+     * @return Wedeto\HTTP\Cookie Provides fluent interface
      */
     public function setExpires(DateTime $date)
     {

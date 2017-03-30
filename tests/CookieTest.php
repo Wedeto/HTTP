@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,14 +23,14 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\Http;
+namespace Wedeto\HTTP;
 
 use PHPUnit\Framework\TestCase;
 use DateTime;
 use DateInterval;
 
 /**
- * @covers WASP\Http\Cookie
+ * @covers Wedeto\HTTP\Cookie
  */
 final class CookieTest extends TestCase
 {
@@ -47,11 +47,11 @@ final class CookieTest extends TestCase
         $this->assertEquals('bar', $a->getName());
         $this->assertEquals('baz', $a->getValue());
 
-        $a->setHttpOnly(true);
-        $this->assertTrue($a->getHttpOnly());
+        $a->setHTTPOnly(true);
+        $this->assertTrue($a->getHTTPOnly());
 
-        $a->setHttpOnly(false);
-        $this->assertFalse($a->getHttpOnly());
+        $a->setHTTPOnly(false);
+        $this->assertFalse($a->getHTTPOnly());
 
         $a->setSecure(false);
         $this->assertFalse($a->getSecure());

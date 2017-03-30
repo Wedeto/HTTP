@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,7 +23,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP\Response;
+namespace Wedeto\HTTP\Response;
 
 /**
  * Provides a way to generate interceptable and testable redirects
@@ -55,7 +55,7 @@ class RedirectRequest extends Response
     /**
      * Set the URL to redirect to
      * @param URL $url The target URL
-     * @return WASP\HTTP\RedirectRequest Provides fluent interface
+     * @return Wedeto\HTTP\RedirectRequest Provides fluent interface
      */
     public function setURL(URL $url)
     {

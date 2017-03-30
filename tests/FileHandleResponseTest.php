@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,14 +23,14 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\Http;
+namespace Wedeto\HTTP;
 
 use PHPUnit\Framework\TestCase;
-use WASP\Debug\Logger;
-use WASP\Debug\DevLogger;
+use Wedeto\Debug\Logger;
+use Wedeto\Debug\DevLogger;
 
 /**
- * @covers WASP\Http\FileHandleResponse
+ * @covers Wedeto\HTTP\FileHandleResponse
  */
 final class FileHandleResponseTest extends TestCase
 {

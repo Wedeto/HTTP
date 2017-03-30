@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,12 +23,12 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP;
+namespace Wedeto\HTTP;
 
-use WASP\Util\LoggerAwareStaticTrait;
-use WASP\Util\Hook;
-use WASP\IO\MimeTypes;
-use WASP\HTTP\Response\Response;
+use Wedeto\Util\LoggerAwareStaticTrait;
+use Wedeto\Util\Hook;
+use Wedeto\IO\MimeTypes;
+use Wedeto\HTTP\Response\Response;
 
 /**
  * Create and output a response
@@ -66,7 +66,7 @@ class Responder
     }
 
     /**
-     * @return WASP\HTTP\Request The HTTP Request instance
+     * @return Wedeto\HTTP\Request The HTTP Request instance
      */
     public function getRequest()
     {
@@ -76,7 +76,7 @@ class Responder
     /**
      * Set the request instance
      * @param Request $request The HTTP Request instance
-     * @return WASP\HTTP\Responder Provides fluent interface
+     * @return Wedeto\HTTP\Responder Provides fluent interface
      */
     public function setRequest(Request $request)
     {
@@ -120,7 +120,7 @@ class Responder
     }
 
     /**
-     * @return WASP\HTTP\Response The current response object
+     * @return Wedeto\HTTP\Response The current response object
      */
     public function getResponse()
     {
@@ -175,7 +175,7 @@ class Responder
      * Set the HTTP Response code
      *
      * @param int $code The HTTP response code
-     * @return WASP\HTTP\Responder Provides fluent interface
+     * @return Wedeto\HTTP\Responder Provides fluent interface
      */
     public function setResponseCode(int $code)
     {
@@ -261,7 +261,7 @@ class Responder
         if (empty($mime) || !$this->request->isAccepted($mime))
         {
             $mime = 'text/html';
-            $this->response = new Error(406, "Not Acceptable", td('No acceptable response can be offered', 'WASP.HTTP'));
+            $this->response = new Error(406, "Not Acceptable", td('No acceptable response can be offered', 'Wedeto.HTTP'));
         }
 
         // Execute hooks
@@ -271,7 +271,7 @@ class Responder
             'mime' => $mime,
         ];
 
-        $hook_params = Hook::execute('WASP.HTTP.Responder.Respond', $hook_params);
+        $hook_params = Hook::execute('Wedeto.HTTP.Responder.Respond', $hook_params);
 
         // Check if mime type was updated
         if (is_string($hook_params['mime']))

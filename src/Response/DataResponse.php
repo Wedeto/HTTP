@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,16 +23,16 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP\Response;
+namespace Wedeto\HTTP\Response;
 
 use Throwable;
 use InvalidArgumentException;
 
-use WASP\Util\Dictionary;
-use WASP\Util\LoggerAwareStaticTrait;
-use WASP\Util\Functions as WF;
-use WASP\FileFormats\AbstractWriter;
-use WASP\FileFormats\WriterFactory;
+use Wedeto\Util\Dictionary;
+use Wedeto\Util\LoggerAwareStaticTrait;
+use Wedeto\Util\Functions as WF;
+use Wedeto\FileFormats\AbstractWriter;
+use Wedeto\FileFormats\WriterFactory;
 
 /**
  * DataResponse represents structured data, such as JSON or XML. The
@@ -89,7 +89,7 @@ class DataResponse extends Response
      *
      * @param string $mime_type The mime type to register
      * @param string $writer_class The writer class. Should subclass AbstractWriter
-     * @return WASP\HTTP\DataResponse Provides fluent interface
+     * @return Wedeto\HTTP\DataResponse Provides fluent interface
      */
     public function addFileFormat(string $mime_type, string $writer_class)
     {
@@ -108,7 +108,7 @@ class DataResponse extends Response
      * Remove a file format from the list.
      * 
      * @param string $mime_type The mime type to remove
-     * @return WASP\HTTP\DataResponse Provies fluent interface
+     * @return Wedeto\HTTP\DataResponse Provies fluent interface
      */
     public function removeFileFormat(string $mime_type)
     {
@@ -117,7 +117,7 @@ class DataResponse extends Response
     }
 
     /**
-     * @return WASP\Util\Dictionary The response data
+     * @return Wedeto\Util\Dictionary The response data
      */
     public function getData()
     {
@@ -135,7 +135,7 @@ class DataResponse extends Response
     /** 
      * Set the pretty printingin option on the writer
      * @param bool $pprint True to enable pretty printing, false to disable it
-     * @return WASP\HTTP\DataResponse Provides fluent interface
+     * @return Wedeto\HTTP\DataResponse Provides fluent interface
      */
     public function setPrettyPrint(bool $pprint)
     {

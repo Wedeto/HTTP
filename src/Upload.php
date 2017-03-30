@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,7 +23,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\Util;
+namespace Wedeto\HTTP;
 
 class Upload
 {
@@ -96,7 +96,7 @@ class Upload
             $rnd = (string)rand(0, 1000);
         }
 
-        \WASP\Log\info("WASP.Util.Upload", "Moving uploaded file {0} to {0}", [$this->location, $target_path]);
+        \Wedeto\Log\info("Wedeto.Util.Upload", "Moving uploaded file {0} to {0}", [$this->location, $target_path]);
         move_uploaded_file($this->location, $target_path);
         chmod($target_path, 0664);
 

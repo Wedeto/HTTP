@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,18 +23,18 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\Http;
+namespace Wedeto\HTTP;
 
 use PHPUnit\Framework\TestCase;
-use WASP\Resolve\Resolver;
-use WASP\System;
-use WASP\Path;
-use WASP\Template;
-use WASP\Dictionary;
-use WASP\Http\RedirectRequest;
+use Wedeto\Resolve\Resolver;
+use Wedeto\System;
+use Wedeto\Path;
+use Wedeto\Template;
+use Wedeto\Dictionary;
+use Wedeto\HTTP\RedirectRequest;
 
 /**
- * @covers WASP\Http\Request
+ * @covers Wedeto\HTTP\Request
  */
 final class RequestTest extends TestCase
 {
@@ -88,8 +88,8 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::__construct
-     * @covers WASP\Session::start
+     * @covers Wedeto\HTTP\Request::__construct
+     * @covers Wedeto\Session::start
      */
     public function testRequestVariables()
     {
@@ -114,9 +114,9 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::__construct
-     * @covers WASP\Http\Request::determineVirtualHost
-     * @covers WASP\Http\Request::resolveApp
+     * @covers Wedeto\HTTP\Request::__construct
+     * @covers Wedeto\HTTP\Request::determineVirtualHost
+     * @covers Wedeto\HTTP\Request::resolveApp
      */
     public function testRouting()
     {
@@ -133,8 +133,8 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::__construct
-     * @covers WASP\Session::start
+     * @covers Wedeto\HTTP\Request::__construct
+     * @covers Wedeto\Session::start
      */
     public function testRoutingInvalid()
     {
@@ -155,9 +155,9 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::__construct
-     * @covers WASP\Http\Request::findVirtualHost
-     * @covers WASP\Http\Request::handleUnknownHost
+     * @covers Wedeto\HTTP\Request::__construct
+     * @covers Wedeto\HTTP\Request::findVirtualHost
+     * @covers Wedeto\HTTP\Request::handleUnknownHost
      */
     public function testRoutingInvalidHostIgnorePolicy()
     {
@@ -170,9 +170,9 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::__construct
-     * @covers WASP\Http\Request::findVirtualHost
-     * @covers WASP\Http\Request::handleUnknownHost
+     * @covers Wedeto\HTTP\Request::__construct
+     * @covers Wedeto\HTTP\Request::findVirtualHost
+     * @covers Wedeto\HTTP\Request::handleUnknownHost
      */
     public function testRoutingInvalidHostErrorPolicy()
     {
@@ -188,9 +188,9 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::__construct
-     * @covers WASP\Http\Request::findVirtualHost
-     * @covers WASP\Http\Request::handleUnknownHost
+     * @covers Wedeto\HTTP\Request::__construct
+     * @covers Wedeto\HTTP\Request::findVirtualHost
+     * @covers Wedeto\HTTP\Request::handleUnknownHost
      */
     public function testRoutingRedirectHost()
     {
@@ -213,8 +213,8 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::findBestMatching
-     * @covers WASP\Http\Request::handleUnknownHost
+     * @covers Wedeto\HTTP\Request::findBestMatching
+     * @covers Wedeto\HTTP\Request::handleUnknownHost
      */
     public function testNoSiteConfig()
     {
@@ -229,7 +229,7 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::parseAccept
+     * @covers Wedeto\HTTP\Request::parseAccept
      */
     public function testAcceptParser()
     {
@@ -242,7 +242,7 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::cli
+     * @covers Wedeto\HTTP\Request::cli
      */
     public function testCLI()
     {
@@ -250,8 +250,8 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Request::isAccepted
-     * @covers WASP\Http\Request::getBestResponseType
+     * @covers Wedeto\HTTP\Request::isAccepted
+     * @covers Wedeto\HTTP\Request::getBestResponseType
      */
     public function testAccept()
     {
@@ -306,10 +306,10 @@ final class RequestTest extends TestCase
         $request = new Request($this->get, $this->post, $this->cookie, $this->server, $this->config, $this->path, $this->resolve);
 
         $tpl = $request->getTemplate();
-        $this->assertInstanceOf(\WASP\Template::class, $tpl);
+        $this->assertInstanceOf(\Wedeto\Template::class, $tpl);
 
         $tpl2 = $request->getTemplate();
-        $this->assertInstanceOf(\WASP\Template::class, $tpl);
+        $this->assertInstanceOf(\Wedeto\Template::class, $tpl);
     }
 
     public function testGetResponseBuilder()
@@ -344,13 +344,13 @@ final class RequestTest extends TestCase
     {
         $pathconfig = System::path();
         $testpath = $pathconfig->var . '/test';
-        \WASP\IO\Dir::mkdir($testpath);
+        \Wedeto\IO\Dir::mkdir($testpath);
         $filename = tempnam($testpath, "wasptest") . ".php";
         $classname = "cl_" . str_replace(".", "", basename($filename));
 
         $phpcode = <<<EOT
 <?php
-throw new WASP\Http\StringResponse('foo');
+throw new Wedeto\HTTP\Response\StringResponse('foo');
 EOT;
 
         $this->expectException(StringResponse::class);
@@ -365,7 +365,7 @@ EOT;
         }
         finally
         {
-            \WASP\IO\Dir::rmtree($testpath);
+            \Wedeto\IO\Dir::rmtree($testpath);
         }
     }
 
@@ -382,10 +382,10 @@ EOT;
         $dict = new Dictionary();
         $dict['unknown_host_policy'] = "REDIRECT";
 
-        $site = new \WASP\Site;
+        $site = new \Wedeto\Site;
         $site->setName('default');
-        $vhost1 = new \WASP\VirtualHost('http://www.foo.bar', 'en');
-        $vhost2 = new \WASP\VirtualHost('http://www.foo.xxx', 'en');
+        $vhost1 = new \Wedeto\VirtualHost('http://www.foo.bar', 'en');
+        $vhost2 = new \Wedeto\VirtualHost('http://www.foo.xxx', 'en');
         $site->addVirtualHost($vhost1);
         $site->addVirtualHost($vhost2);
 
@@ -528,7 +528,7 @@ class MockRequestTestRequest extends Request
 
     public function startSession()
     {
-        $this->session = new \WASP\Session(new URL('/'), $this->config, $this->server);
+        $this->session = new \Wedeto\Session(new URL('/'), $this->config, $this->server);
     }
 }
 
@@ -563,7 +563,7 @@ class MockRequestResponseBuilder extends ResponseBuilder
     }
 }
 
-class MockRequestResolver extends \WASP\Resolve\Resolver
+class MockRequestResolver extends \Wedeto\Resolve\Resolver
 {
     public $return_value = null;
 

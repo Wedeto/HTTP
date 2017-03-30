@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,19 +23,19 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\Http;
+namespace Wedeto\HTTP;
 
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers WASP\Http\URL
+ * @covers Wedeto\HTTP\URL
  */
 final class URLTest extends TestCase
 {
     /**
-     * @covers WASP\Http\URL::__construct
-     * @covers WASP\Http\URL::parse
-     * @covers WASP\Http\URL::__get
+     * @covers Wedeto\HTTP\URL::__construct
+     * @covers Wedeto\HTTP\URL::parse
+     * @covers Wedeto\HTTP\URL::__get
      */
     public function testURL()
     {
@@ -161,15 +161,15 @@ final class URLTest extends TestCase
     }
     
     /**
-     * @covers WASP\Http\URL::__construct
-     * @covers WASP\Http\URL::__set
-     * @covers WASP\Http\URL::__get
-     * @covers WASP\Http\URL::__toString
-     * @covers WASP\Http\URL::toString
-     * @covers WASP\Http\URL::offsetGet
-     * @covers WASP\Http\URL::offsetSet
-     * @covers WASP\Http\URL::offsetExists
-     * @covers WASP\Http\URL::offsetUnset
+     * @covers Wedeto\HTTP\URL::__construct
+     * @covers Wedeto\HTTP\URL::__set
+     * @covers Wedeto\HTTP\URL::__get
+     * @covers Wedeto\HTTP\URL::__toString
+     * @covers Wedeto\HTTP\URL::toString
+     * @covers Wedeto\HTTP\URL::offsetGet
+     * @covers Wedeto\HTTP\URL::offsetSet
+     * @covers Wedeto\HTTP\URL::offsetExists
+     * @covers Wedeto\HTTP\URL::offsetUnset
      */
     public function testConstruct()
     {
@@ -228,7 +228,7 @@ final class URLTest extends TestCase
     }
     
     /**
-     * @covers WASP\Http\URL::__get
+     * @covers Wedeto\HTTP\URL::__get
      */
     public function testGetException()
     {
@@ -238,7 +238,7 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::__set
+     * @covers Wedeto\HTTP\URL::__set
      */
     public function testSetException()
     {
@@ -248,7 +248,7 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::offsetGet
+     * @covers Wedeto\HTTP\URL::offsetGet
      */
     public function testOffsetGetException()
     {
@@ -258,7 +258,7 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::offsetSet
+     * @covers Wedeto\HTTP\URL::offsetSet
      */
     public function testOffsetSetException()
     {
@@ -268,9 +268,9 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::__construct
-     * @covers WASP\Http\URL::__get
-     * @covers WASP\Http\URL::get
+     * @covers Wedeto\HTTP\URL::__construct
+     * @covers Wedeto\HTTP\URL::__get
+     * @covers Wedeto\HTTP\URL::get
      */
     public function testDefaultScheme()
     {
@@ -299,7 +299,7 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::__construct
+     * @covers Wedeto\HTTP\URL::__construct
      */
     public function testCopyConstruct()
     {
@@ -310,8 +310,8 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::__construct
-     * @covers WASP\Http\URL::parse
+     * @covers Wedeto\HTTP\URL::__construct
+     * @covers Wedeto\HTTP\URL::parse
      */
     public function testUnsupported()
     {
@@ -320,8 +320,8 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::__construct
-     * @covers WASP\Http\URL::parse
+     * @covers Wedeto\HTTP\URL::__construct
+     * @covers Wedeto\HTTP\URL::parse
      */
     public function testUnsupportNonExistingScheme()
     {
@@ -330,8 +330,8 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::__construct
-     * @covers WASP\Http\URL::parse
+     * @covers Wedeto\HTTP\URL::__construct
+     * @covers Wedeto\HTTP\URL::parse
      */
     public function testInvalidUrl()
     {
@@ -341,8 +341,8 @@ final class URLTest extends TestCase
 
 
     /**
-     * @covers WASP\Http\URL::__construct
-     * @covers WASP\Http\URL::parse
+     * @covers Wedeto\HTTP\URL::__construct
+     * @covers Wedeto\HTTP\URL::parse
      */
     public function testPathCannotBeEmpty()
     {
@@ -360,8 +360,8 @@ final class URLTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\URL::__construct
-     * @covers WASP\Http\URL::toString
+     * @covers Wedeto\HTTP\URL::__construct
+     * @covers Wedeto\HTTP\URL::toString
      */
     public function testIDN()
     {

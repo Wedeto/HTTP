@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,11 +23,11 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP;
+namespace Wedeto\HTTP;
 
-use WASP\Util\Date;
-use WASP\Util\LoggerAwareStaticTrait;
-use WASP\Util\Dictionary;
+use Wedeto\Util\Date;
+use Wedeto\Util\LoggerAwareStaticTrait;
+use Wedeto\Util\Dictionary;
 
 /**
  * Request encapsulates a HTTP request, containing all data transferrred to the
@@ -163,7 +163,7 @@ class Request
 
     /**
      * Start the HTTP Session, and initalize the session object
-     * @param WASP\HTTP\Request Provides fluent interface
+     * @param Wedeto\HTTP\Request Provides fluent interface
      */
     public function startSession(URL $domain, Dictionary $config)
     {
@@ -297,7 +297,7 @@ class Request
 
     /**
      * @return boolean Whether the request accepts JSON as response
-     * @see WASP\Platform\Template::want
+     * @see Wedeto\Platform\Template::want
      */
     public function wantJSON()
     {
@@ -306,7 +306,7 @@ class Request
 
     /**
      * @return boolean Whether the request accepts HTML as response
-     * @see WASP\Platform\Template::want
+     * @see Wedeto\Platform\Template::want
      */
     public function wantHTML()
     {
@@ -315,7 +315,7 @@ class Request
 
     /**
      * @return boolean Whether the request accepts HTML as response
-     * @see WASP\Platform\Template::want
+     * @see Wedeto\Platform\Template::want
      */
     public function wantText()
     {
@@ -324,7 +324,7 @@ class Request
 
     /**
      * @return boolean Whether the request accepts XML as response
-     * @see WASP\Platform\Template::want
+     * @see Wedeto\Platform\Template::want
      */
     public function wantXML()
     {
@@ -340,7 +340,7 @@ class Request
      *
      * @param array $types The list of response types offered
      * @return string The preferred response type
-     * @see WASP\HTTP\Request::want
+     * @see Wedeto\HTTP\Request::want
      */
     public function chooseResponse(array $types)
     {

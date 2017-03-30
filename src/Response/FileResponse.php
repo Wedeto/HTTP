@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,11 +23,11 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP\Response;
+namespace Wedeto\HTTP\Response;
 
-use WASP\Util\Functions as WF;
-use WASP\Util\LoggerAwareStaticTrait;
-use WASP\Util\DefVal;
+use Wedeto\Util\Functions as WF;
+use Wedeto\Util\LoggerAwareStaticTrait;
+use Wedeto\Util\DefVal;
 
 /**
  * Output a file, given its filename. The handler may decide to output the
@@ -101,7 +101,7 @@ class FileResponse extends Response
      * the file will be output by this script.
      * 
      * @param bool $use True to use X-Sendfile, false to send directly
-     * @return WASP\HTTP\Response\FileResponse Provides fluent interface
+     * @return Wedeto\HTTP\Response\FileResponse Provides fluent interface
      */
     public function setUseXSendFile(bool $use)
     {

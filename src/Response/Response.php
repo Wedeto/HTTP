@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,10 +23,10 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP\Response;
+namespace Wedeto\HTTP\Response;
 
-use WASP\HTTP\Request;
-use WASP\HTTP\CachePolicy;
+use Wedeto\HTTP\Request;
+use Wedeto\HTTP\CachePolicy;
 
 abstract class Response extends \Exception
 {
@@ -87,7 +87,7 @@ abstract class Response extends \Exception
     /**
      * Set the cache policy for this response
      * @param CachePolicy $policy The policy to set
-     * @return WASP\HTTP\Response\Response Provides fluent interface
+     * @return Wedeto\HTTP\Response\Response Provides fluent interface
      */
     public function setCachePolicy(CachePolicy $policy)
     {

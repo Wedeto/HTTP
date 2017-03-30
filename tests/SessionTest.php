@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,16 +23,16 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP;
+namespace Wedeto;
 
 use PHPUnit\Framework\TestCase;
-use WASP\Http\URL;
+use Wedeto\HTTP\URL;
 
 use DateTime;
 use DateInterval;
 
 /**
- * @covers WASP\Session
+ * @covers Wedeto\Session
  */
 final class SessionTest extends TestCase
 {
@@ -57,14 +57,14 @@ final class SessionTest extends TestCase
     }
     
     /**
-     * @covers WASP\Session::__construct
-     * @covers WASP\Session::getCookie
-     * @covers WASP\Session::startHttpSession
+     * @covers Wedeto\Session::__construct
+     * @covers Wedeto\Session::getCookie
+     * @covers Wedeto\Session::startHTTPSession
      */
     public function testSession()
     {
         $a = new Session($this->url, $this->config, $this->server_vars);
-        $a->startHttpSession();
+        $a->startHTTPSession();
          
         $cookie = $a->getCookie();
         $this->assertEquals('wasp_www_foobar_com', $cookie->getName());
@@ -72,19 +72,19 @@ final class SessionTest extends TestCase
         $expires = new \DateTime("@" . $cookie->getExpires());
         $this->assertTrue(Date::isFuture($expires));
         $this->assertEquals('www.foobar.com', $cookie->getDomain());
-        $this->assertEquals(true, $cookie->GetHttpOnly());
+        $this->assertEquals(true, $cookie->getHTTPOnly());
     }
 
     /**
-     * @covers WASP\Session::__construct
-     * @covers WASP\Session::getCookie
-     * @covers WASP\Session::startHttpSession
-     * @covers WASP\Session::resetID
+     * @covers Wedeto\Session::__construct
+     * @covers Wedeto\Session::getCookie
+     * @covers Wedeto\Session::startHTTPSession
+     * @covers Wedeto\Session::resetID
      */
     public function testSessionReset()
     {
         $a = new Session($this->url, $this->config, $this->server_vars);
-        $a->startHttpSession();
+        $a->startHTTPSession();
 
         $cookie = $a->getCookie();
         $old_session_id = $cookie->getValue();
@@ -100,16 +100,16 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers WASP\Session::__construct
-     * @covers WASP\Session::getCookie
-     * @covers WASP\Session::startHttpSession
-     * @covers WASP\Session::destroy
-     * @covers WASP\Session::setSessionID
+     * @covers Wedeto\Session::__construct
+     * @covers Wedeto\Session::getCookie
+     * @covers Wedeto\Session::startHTTPSession
+     * @covers Wedeto\Session::destroy
+     * @covers Wedeto\Session::setSessionID
      */
     public function testSessionDestroy()
     {
         $a = new Session($this->url, $this->config, $this->server_vars);
-        $a->startHttpSession();
+        $a->startHTTPSession();
         $sid = $a->getSessionID();
         $a['pi'] = 3.14;
         $this->assertEquals(3.14, $_SESSION['pi']);
@@ -119,14 +119,14 @@ final class SessionTest extends TestCase
 
         $a = new Session($this->url, $this->config, $this->server_vars);
         $a->setSessionID($sid);
-        $a->startHttpSession();
+        $a->startHTTPSession();
         $this->assertFalse(isset($_SESSION['pi']));
     }
 
     /**
-     * @covers WASP\Session::__construct
-     * @covers WASP\Session::startHttpSession
-     * @covers WASP\Session::getCookie
+     * @covers Wedeto\Session::__construct
+     * @covers Wedeto\Session::startHTTPSession
+     * @covers Wedeto\Session::getCookie
      */
     public function testSessionConfigWithLifetime()
     {
@@ -134,7 +134,7 @@ final class SessionTest extends TestCase
         $cfg['cookie'] = $this->config;
         $cfg->set('cookie', 'lifetime', '1D');
         $a = new Session($this->url, $cfg, $this->server_vars);
-        $a->startHttpSession();
+        $a->startHTTPSession();
 
         $c = $a->getCookie();
 
@@ -150,9 +150,9 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers WASP\Session::__construct
-     * @covers WASP\Session::startHttpSession
-     * @covers WASP\Session::getCookie
+     * @covers Wedeto\Session::__construct
+     * @covers Wedeto\Session::startHTTPSession
+     * @covers Wedeto\Session::getCookie
      */
     public function testSessionConfigWithLifetimeIntValue()
     {
@@ -160,7 +160,7 @@ final class SessionTest extends TestCase
         $cfg['cookie'] = $this->config;
         $cfg->set('cookie', 'lifetime', '86400');
         $a = new Session($this->url, $cfg, $this->server_vars);
-        $a->startHttpSession();
+        $a->startHTTPSession();
 
         $c = $a->getCookie();
 
@@ -176,9 +176,9 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers WASP\Session::__construct
-     * @covers WASP\Session::startCLISession
-     * @covers WASP\Session::getCookie
+     * @covers Wedeto\Session::__construct
+     * @covers Wedeto\Session::startCLISession
+     * @covers Wedeto\Session::getCookie
      */
     public function testCLISession()
     {
@@ -191,14 +191,14 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers WASP\Session::__construct
-     * @covers WASP\Session::startHttpSession
-     * @covers WASP\Session::getSessionName
-     * @covers WASP\Session::getSessionID
-     * @covers WASP\Session::setSessionID
-     * @covers WASP\Session::secureSession
-     * @covers WASP\Session::resetID
-     * @covers WASP\Session::close
+     * @covers Wedeto\Session::__construct
+     * @covers Wedeto\Session::startHTTPSession
+     * @covers Wedeto\Session::getSessionName
+     * @covers Wedeto\Session::getSessionID
+     * @covers Wedeto\Session::setSessionID
+     * @covers Wedeto\Session::secureSession
+     * @covers Wedeto\Session::resetID
+     * @covers Wedeto\Session::close
      */
     public function testSessionExpires()
     {
@@ -223,7 +223,7 @@ final class SessionTest extends TestCase
         // Configure the session ID
         $a->setSessionId($sid);
 
-        $a->startHttpSession();
+        $a->startHTTPSession();
         $this->assertEquals($sid, $a->getSessionID());
 
         $a->set('session_mgmt', 'start_time', 0);
@@ -235,20 +235,20 @@ final class SessionTest extends TestCase
         $a = new Session($this->url, $this->config, $this->server_vars);
         $a->setSessionId($sid);
 
-        $a->startHttpSession();
+        $a->startHTTPSession();
         $this->assertNotEquals($sid, $a->getSessionId());
         $a->close();
     }
 
     /**
-     * @covers WASP\Session::__construct
-     * @covers WASP\Session::startHttpSession
-     * @covers WASP\Session::getSessionName
-     * @covers WASP\Session::getSessionID
-     * @covers WASP\Session::setSessionID
-     * @covers WASP\Session::secureSession
-     * @covers WASP\Session::resetID
-     * @covers WASP\Session::close
+     * @covers Wedeto\Session::__construct
+     * @covers Wedeto\Session::startHTTPSession
+     * @covers Wedeto\Session::getSessionName
+     * @covers Wedeto\Session::getSessionID
+     * @covers Wedeto\Session::setSessionID
+     * @covers Wedeto\Session::secureSession
+     * @covers Wedeto\Session::resetID
+     * @covers Wedeto\Session::close
      */
     public function testSessionDestroyed()
     {
@@ -272,7 +272,7 @@ final class SessionTest extends TestCase
 
         // Configure the session ID
         $a->setSessionId($sid);
-        $a->startHttpSession();
+        $a->startHTTPSession();
         $this->assertEquals($sid, $a->getSessionID());
 
         $a['authentication'] = "LOGGEDIN";
@@ -287,7 +287,7 @@ final class SessionTest extends TestCase
         // Start a new 'good' session
         $a = new Session($this->url, $this->config, $this->server_vars);
         $a->setSessionID($sid);
-        $a->startHttpSession();
+        $a->startHTTPSession();
 
         // Should be redirected to the new session now, as we're the good client
         $this->assertEquals($new_session_id, $a->getSessionID());
@@ -300,7 +300,7 @@ final class SessionTest extends TestCase
         $this->server_vars['HTTP_USER_AGENT'] = "EvilClient";
         $a = new Session($this->url, $this->config, $this->server_vars);
         $a->setSessionID($sid);
-        $a->startHttpSession();
+        $a->startHTTPSession();
 
         // Should be redirected to a new session, without authentication
         $this->assertNotEquals($new_session_id, $a->getSessionID());

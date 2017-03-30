@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,16 +23,16 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\HTTP;
+namespace Wedeto\HTTP;
 
 use DateTime;
 use DateInterval;
 
-use WASP\Util\Dictionary;
-use WASP\Util\Date;
-use WASP\Util\Functions as WF;
-use WASP\Util\ErrorInterceptor;
-use WASP\HTTP\Error as HTTPError;
+use Wedeto\Util\Dictionary;
+use Wedeto\Util\Date;
+use Wedeto\Util\Functions as WF;
+use Wedeto\Util\ErrorInterceptor;
+use Wedeto\HTTP\Error as HTTPError;
 
 class Session extends Dictionary
 {
@@ -59,8 +59,8 @@ class Session extends Dictionary
 
     /**
      * Create the session based on a VirtualHost and a configuration
-     * @param WASP\HTTP\URL $base_url The base path for the session
-     * @param WASP\Util\Dictionary $config The configuration for cookie parameters
+     * @param Wedeto\HTTP\URL $base_url The base path for the session
+     * @param Wedeto\Util\Dictionary $config The configuration for cookie parameters
      */
     public function __construct(URL $base_url, Dictionary $config, Dictionary $server_vars)
     {
@@ -141,7 +141,7 @@ class Session extends Dictionary
      */
     public function startCLISession()
     {
-        if (PHP_SAPI === "CLI" && (!defined('WASP_TEST') || WASP_TEST === 0)) return;
+        if (PHP_SAPI === "CLI" && (!defined('WEDETO_TEST') || WEDETO_TEST === 0)) return;
         $this->session_cache = new Cache('cli-session');
         $ref = &$this->session_cache->get();
 
@@ -159,7 +159,7 @@ class Session extends Dictionary
      */
     public function setSessionID(string $session_id)
     {
-        if (!defined('WASP_TEST') || WASP_TEST === 0)
+        if (!defined('WEDETO_TEST') || WEDETO_TEST === 0)
             throw new \RuntimeException("Cannot change the session ID");
 
         $this->session_id = $session_id;
@@ -202,7 +202,7 @@ class Session extends Dictionary
         );
         session_name($this->session_cookie->getName());
 
-        $custom_session_id = defined('WASP_TEST') && WASP_TEST === 1 && $this->session_id !== null;
+        $custom_session_id = defined('WEDETO_TEST') && WEDETO_TEST === 1 && $this->session_id !== null;
         if ($custom_session_id)
         {
             ini_set('session.use_strict_mode', 0);
@@ -318,7 +318,7 @@ class Session extends Dictionary
     /** 
      * Should be called when the session ID should be changed, for example
      * after logging in or out.
-     * @return WASP\HTTP\Session Provides fluent interface
+     * @return Wedeto\HTTP\Session Provides fluent interface
      */
     public function resetID()
     {
@@ -370,7 +370,7 @@ class Session extends Dictionary
 
         $errors = $interceptor->getInterceptedErrors();
         foreach ($errors as $error)
-            \WASP\Log\notice("WASP.Util.Session", "Error sending session cookie: {exception}", ['exception' => $error]);
+            \Wedeto\Log\notice("Wedeto.Util.Session", "Error sending session cookie: {exception}", ['exception' => $error]);
     }
 
     /**
@@ -381,7 +381,7 @@ class Session extends Dictionary
      * @param string $prefix A prefix to prepend to the session ID
      * @return string A hexadecimal session ID
      */
-    private static function create_new_id(string $prefix = "WASP")
+    private static function create_new_id(string $prefix = "Wedeto")
     {
         if (version_compare(PHP_VERSION, '7.1.0') > 0)
             return session_create_id($prefix);
@@ -401,7 +401,7 @@ class Session extends Dictionary
 
     /** 
      * Should be called when the session should be cleared and destroyed.
-     * @return WASP\HTTP\Session Provides fluent interface
+     * @return Wedeto\HTTP\Session Provides fluent interface
      */
     public function destroy()
     {
@@ -413,7 +413,7 @@ class Session extends Dictionary
 
     /** 
      * Get the session cookie to be sent to the client
-     * @return WASP\HTTP\Cookie The session cookie
+     * @return Wedeto\HTTP\Cookie The session cookie
      */
     public function getCookie()
     {

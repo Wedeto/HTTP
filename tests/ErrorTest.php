@@ -1,6 +1,6 @@
 <?php
 /*
-This is part of WASP, the Web Application Software Platform.
+This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
 Copyright 2017, Egbert van der Wal
@@ -23,16 +23,16 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace WASP\Http;
+namespace Wedeto\HTTP;
 
 use PHPUnit\Framework\TestCase;
-use WASP\Template;
-use WASP\System;
+use Wedeto\Template;
+use Wedeto\System;
 
 /**
- * @covers WASP\Http\Error
+ * @covers Wedeto\HTTP\Error
  */
-final class HttpErrorTest extends TestCase
+final class HTTPErrorTest extends TestCase
 {
     public function tearDown()
     {
@@ -40,10 +40,10 @@ final class HttpErrorTest extends TestCase
     }
 
     /**
-     * @covers WASP\Http\Error::__construct
-     * @covers WASP\Http\Error::getUserMessage
+     * @covers Wedeto\HTTP\Error::__construct
+     * @covers Wedeto\HTTP\Error::getUserMessage
      */
-    public function testHttpError()
+    public function testHTTPError()
     {
         $a = new Error(400, "Error");
         $this->assertNull($a->getUserMessage());
