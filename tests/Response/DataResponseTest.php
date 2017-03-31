@@ -57,8 +57,6 @@ final class DataResponseTest extends TestCase
 
         $this->assertContains('application/json', $actual);
         $this->assertContains('application/xml', $actual);
-        $this->assertContains('text/html', $actual);
-        $this->assertContains('text/plain', $actual);
     }
 
     public function testOutput()

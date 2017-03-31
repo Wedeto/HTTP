@@ -153,7 +153,6 @@ final class FileResponseTest extends TestCase
 
 		// Validate length error message
 		$log = $this->memlog->getLog();
-        var_dump($log);
 		$this->assertEquals(['   WARNING: FileResponse promised to send 6 bytes but 9 were actually transfered of file foobar.txt'], $log);
     }
 

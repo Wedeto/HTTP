@@ -248,7 +248,7 @@ class Request
 
         // Auto-fill mime-types when running from CLI.
         if (self::cli() && empty($this->accept))
-            $this->accept = array('text/plain');
+            $this->accept = array('text/plain' => 1.0);
 
         foreach ($types as $type)
         {

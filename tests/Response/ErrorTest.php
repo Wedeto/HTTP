@@ -66,6 +66,6 @@ final class HTTPErrorTest extends TestCase
         ob_end_clean();
 
         $expected_start = "Wedeto\HTTP\Response\Error: Internal Server Error";
-        $this->assertTrue(0, strpos($expected_start, $actual));
+        $this->assertEquals(0, strpos($expected_start, $actual));
     }
 }

@@ -28,6 +28,7 @@ namespace Wedeto\HTTP;
 use PHPUnit\Framework\TestCase;
 
 use Wedeto\Util\Dictionary;
+use Wedeto\Util\Date;
 use Wedeto\HTTP\Response\RedirectRequest;
 
 /**
@@ -42,9 +43,6 @@ final class RequestTest extends TestCase
     private $config;
 
     private $url;
-
-    private $path;
-    private $resolve;
 
     public function setUp()
     {
@@ -71,6 +69,8 @@ final class RequestTest extends TestCase
         $this->cookie = array(
             'session_id' => '1234'
         );
+
+        $this->config = new Dictionary;
     }
 
     /**
@@ -154,22 +154,12 @@ final class RequestTest extends TestCase
         $request->accept = array();
         $resp = $request->getBestResponseType(array('foo/bar', 'application/bar/', 'text/plain', 'text/html'));
         $this->assertEquals($resp, "text/plain");
-
-        $op = array(
-            'text/plain' => 'Plain text',
-            'text/html' => 'HTML Text'
-        );
-
-        ob_start();
-        $request->outputBestResponseType($op);
-        $c = ob_get_contents();
-        ob_end_clean();
     }
 
     public function testGetStartTime()
     {
         $request = new Request($this->get, $this->post, $this->cookie, $this->server);
-        $this->assertEquals($_SERVER['REQUEST_TIME_FLOAT'], $request->getStartTime());
+        $this->assertEquals($_SERVER['REQUEST_TIME_FLOAT'], Date::dateToFloat($request->getStartTime()));
     }
 
     public function testNoScheme()
@@ -187,7 +177,7 @@ final class RequestTest extends TestCase
     public function testStartSession()
     {
         $req = new Request($this->get, $this->post, $this->cookie, $this->server);
-        $req->startSession($this->url);
+        $req->startSession($this->url, $this->config);
 
         $sess_object = $req->session;
 
@@ -195,7 +185,7 @@ final class RequestTest extends TestCase
         $_SESSION['foobar'] = rand();
         $this->assertEquals($_SESSION, $req->session->getAll());
 
-        $req->startSession($this->url);
+        $req->startSession($this->url, $this->config);
         $this->assertEquals($sess_object, $req->session);
 
     }

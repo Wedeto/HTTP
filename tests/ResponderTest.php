@@ -27,9 +27,13 @@ namespace Wedeto\HTTP;
 
 use PHPUnit\Framework\TestCase;
 
+use Wedeto\Util\Dictionary;
 use Wedeto\Log\Logger;
 use Wedeto\Log\MemLogger;
+
 use Wedeto\HTTP\Response\Response;
+use Wedeto\HTTP\Response\StringResponse;
+use Wedeto\HTTP\Response\Error;
 
 use Throwable;
 use RuntimeException;
@@ -45,11 +49,11 @@ final class ResponderTest extends TestCase
 
     public function setUp()
     {
-        $this->config = System::config();
+        $this->config = new Dictionary;
         $this->config->set('site', 'dev', true);
         $this->config->set('site', 'tidy-output', true);
 
-        $this->request = System::request();
+        $this->request = Request::createFromGlobals();
         $this->rb = new Responder($this->request);
     }
 
@@ -83,8 +87,8 @@ final class ResponderTest extends TestCase
     public function testEndOutputBuffers()
     {
         $logger = Logger::getLogger(Responder::class);
-        $devlogger = new DevLogger("debug");
-        $logger->addLogHandler($devlogger);
+        $memlogger = new MemLogger("debug");
+        $logger->addLogHandler($memlogger);
 
         $start_lvl = ob_get_level();
 
@@ -95,7 +99,7 @@ final class ResponderTest extends TestCase
 
         $this->rb->endAllOutputBuffers($start_lvl);
 
-        $log = $devlogger->getLog();
+        $log = $memlogger->getLog();
         
         $expected = [
             '     DEBUG: Script output: 1/1: foo',
@@ -107,43 +111,24 @@ final class ResponderTest extends TestCase
     public function testInvalidResponseCode()
     {
         $logger = Logger::getLogger(Responder::class);
-        $devlogger = new DevLogger("debug");
-        $logger->addLogHandler($devlogger);
+        $memlogger = new MemLogger("debug");
+        Responder::setLogger($logger);
 
+        $logger->addLogHandler($memlogger);
         $this->rb->setResponseCode(900);
 
-        $log = $devlogger->getLog();
+        $log = $memlogger->getLog();
         $expected = 'CRITICAL: Invalid status 900';
         $this->assertTrue(strpos($log[0], $expected) !== false);
 
         $this->assertEquals(500, $this->rb->getResponseCode());
     }
 
-    public function testGetAssetManager()
-    {
-        $mgr = $this->rb->GetAssetManager();
-        $this->assertInstanceOf(AssetManager::class, $mgr);
-
-        $this->assertTrue($mgr->getTidy());
-        $this->assertFalse($mgr->getMinified());
-    }
-
-    public function testSetThrowable()
-    {
-        $thr = new \InvalidArgumentException('foobar');
-        $this->rb->setThrowable($thr);
-
-        $resp = $this->rb->getResponse();
-        $this->assertInstanceOf(Error::class, $resp);
-        $prev = $resp->getPrevious();
-        $this->assertEquals($thr, $prev);
-    }
-
     public function testSetResponse()
     {
         $resp = new StringResponse('foobar', 'text/plain');
 
-        $this->rb->setThrowable($resp);
+        $this->rb->setResponse($resp);
 
         $actual = $this->rb->getResponse();
         $this->assertInstanceOf(StringResponse::class, $resp);
@@ -156,7 +141,7 @@ final class ResponderTest extends TestCase
         $this->rb = new MockResponder($this->request);
 
         $thr = new \InvalidArgumentException('foobar');
-        $this->rb->setThrowable($thr);
+        $this->rb->setResponse(new Error(500, "Error", $thr));
 
         try
         {

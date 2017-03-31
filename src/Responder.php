@@ -28,7 +28,9 @@ namespace Wedeto\HTTP;
 use Wedeto\Util\LoggerAwareStaticTrait;
 use Wedeto\Util\Hook;
 use Wedeto\IO\MimeTypes;
+
 use Wedeto\HTTP\Response\Response;
+use Wedeto\HTTP\Response\Error;
 
 /**
  * Create and output a response
@@ -203,7 +205,7 @@ class Responder
     /**
      * Close all active output buffers and log their contents
      */
-    protected function endAllOutputBuffers($lvl = 0)
+    public function endAllOutputBuffers($lvl = 0)
     {
         $ob_cnt = 0;
         while (ob_get_level() > $lvl)
