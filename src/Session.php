@@ -28,6 +28,7 @@ namespace Wedeto\HTTP;
 use DateTime;
 use DateInterval;
 
+use Wedeto\Util\Cache;
 use Wedeto\Util\Dictionary;
 use Wedeto\Util\Date;
 use Wedeto\Util\Functions as WF;

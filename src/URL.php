@@ -203,6 +203,9 @@ class URL implements \ArrayAccess
 
     public function set(string $field, $value)
     {
+        if ($value === null)
+            $value = "";
+
         switch ($field)
         {
             case "scheme":

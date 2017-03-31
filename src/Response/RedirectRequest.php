@@ -25,6 +25,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace Wedeto\HTTP\Response;
 
+use Wedeto\HTTP\URL;
+
 /**
  * Provides a way to generate interceptable and testable redirects
  */
@@ -55,7 +57,7 @@ class RedirectRequest extends Response
     /**
      * Set the URL to redirect to
      * @param URL $url The target URL
-     * @return Wedeto\HTTP\RedirectRequest Provides fluent interface
+     * @return Wedeto\HTTP\Response\RedirectRequest Provides fluent interface
      */
     public function setURL(URL $url)
     {

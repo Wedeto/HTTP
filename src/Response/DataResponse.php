@@ -112,7 +112,7 @@ class DataResponse extends Response
      */
     public function removeFileFormat(string $mime_type)
     {
-        unset($this->file_formats[$mime_type];
+        unset($this->file_formats[$mime_type]);
         return $this;
     }
 
@@ -169,7 +169,7 @@ class DataResponse extends Response
         {
             // Bad. Attempt to override response type if still possible
             self::getLogger()->critical('Could not output data, exception occured while writing: {0}', [$e]);
-            Error::fallbackWriter($this->data, $mime);
+            echo WF::str($this->data->getAll());
         }
     }
-
+}

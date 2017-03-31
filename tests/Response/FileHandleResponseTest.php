@@ -23,11 +23,11 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto\HTTP;
+namespace Wedeto\HTTP\Response;
 
 use PHPUnit\Framework\TestCase;
-use Wedeto\Debug\Logger;
-use Wedeto\Debug\DevLogger;
+use Wedeto\Log\Logger;
+use Wedeto\Log\MemLogger;
 
 /**
  * @covers Wedeto\HTTP\FileHandleResponse
@@ -37,8 +37,16 @@ final class FileHandleResponseTest extends TestCase
     private $msg = "foobar";
     private $fh;
 
+    private $logger;
+    private $memlog;
+
     public function setUp()
     {
+        $this->logger = Logger::getLogger(FileHandleResponse::class);
+        FileHandleResponse::setLogger($this->logger);
+        $this->memlog = new MemLogger('debug');
+        $this->logger->addLogHandler($this->memlog);
+
         $this->fh = fopen('php://memory', 'rw');
         fwrite($this->fh, $this->msg);
         fseek($this->fh, 0);
@@ -48,8 +56,7 @@ final class FileHandleResponseTest extends TestCase
     {
         fclose($this->fh);
 
-        $logger = Logger::getLogger(FileHandleResponse::class);
-        $logger->removeLogHandlers();
+        $this->logger->removeLogHandlers();
     }
 
     public function testFileHandle()
@@ -97,8 +104,8 @@ final class FileHandleResponseTest extends TestCase
     public function testFileHandleDownloadInvalidLength()
     {
         $logger = Logger::getLogger(FileHandleResponse::class);
-        $devlogger = new DevLogger("debug");
-        $logger->addLogHandler($devlogger);
+        $memlogger = new MemLogger("debug");
+        $logger->addLogHandler($memlogger);
 
         $a = new FileHandleResponse($this->fh, 'foobar.txt', 'text/plain', true);
         $a->setLength(60);
@@ -119,7 +126,7 @@ final class FileHandleResponseTest extends TestCase
         $this->assertEquals($this->msg, $actual);
 
 		// Validate length error message
-		$log = $devlogger->getLog();
+		$log = $memlogger->getLog();
 		$this->assertEquals(['   WARNING: FileHandleResponse was specified to send 60 bytes but 6 were actually transfered of file foobar.txt'], $log);
     }
 }

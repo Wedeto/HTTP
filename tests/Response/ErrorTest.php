@@ -52,85 +52,20 @@ final class HTTPErrorTest extends TestCase
         $a = new Error(500, "Error");
         $actual = $a->getMimeTypes();
 
-        $this->assertContains('application/json', $actual);
-        $this->assertContains('application/xml', $actual);
-        $this->assertContains('text/html', $actual);
         $this->assertContains('text/plain', $actual);
-    }
-
-    public function testFallbackWriter()
-    {
-        $data = array(
-            'a' => false,
-            'b' => [4, 5, 6],
-            'c' => 3,
-            'd' => 4.5,
-            'e' => "str"
-        );
-
-        ob_start();
-        Error::outputPlainText($data, 0, false);
-        $actual = ob_get_contents();
-        ob_end_clean();
-
-        $expected = <<<EOT
-a = 'FALSE'
-b = {
-    0 = '4'
-    1 = '5'
-    2 = '6'
-}
-c = '3'
-d = '4.5'
-e = 'str'
-
-EOT;
-
-        $this->assertEquals($expected, $actual);
-
-        ob_start();
-        Error::outputPlainText(false, 0, false);
-        $actual = ob_get_contents();
-        ob_end_clean();
-
-        $expected = "FALSE\n";
-        $this->assertEquals($expected, $actual);
     }
 
     public function testOutput()
     {
         $request = Request::createFromGlobals();
-
         $a = new Error(500, 'Internal Server Error');
         
-        $tpl->setMimeType('text/plain');
         ob_start();
         $a->output('text/plain');
         $actual = ob_get_contents();
         ob_end_clean();
 
-        $expected = 'template render message';
-        $this->assertEquals($expected, $actual);
-
-        $tpl->setMimeType('text/html');
-        ob_start();
-        $a->output('text/html');
-        $actual = ob_get_contents();
-        ob_end_clean();
-
-        $expected = 'template render message';
-        $this->assertEquals($expected, $actual);
-
-
-        $a = new Error(500, 'Internal Foo Error');
-        $tpl->setMimeType('application/json');
-        ob_start();
-        $a->output('application/json');
-        $actual = ob_get_contents();
-        ob_end_clean();
-
-        $actual = json_decode($actual, true);
-        $this->assertEquals('Internal Foo Error', $actual['message']);
-        $this->assertEquals(500, $actual['status_code']);
+        $expected_start = "Wedeto\HTTP\Response\Error: Internal Server Error";
+        $this->assertTrue(0, strpos($expected_start, $actual));
     }
 }

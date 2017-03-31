@@ -23,13 +23,23 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto;
-
-use PHPUnit\Framework\TestCase;
-use Wedeto\HTTP\URL;
+namespace Wedeto\HTTP;
 
 use DateTime;
 use DateInterval;
+
+use PHPUnit\Framework\TestCase;
+use org\bovigo\vfs\vfsStream;
+use org\bovigo\vfs\vfsStreamWrapper;
+use org\bovigo\vfs\vfsStreamDirectory;
+
+use Wedeto\Util\Dictionary;
+use Wedeto\Util\Date;
+use Wedeto\Util\Cache;
+
+use Wedeto\HTTP\URL;
+
+define('WEDETO_TEST', 1);
 
 /**
  * @covers Wedeto\Session
@@ -48,6 +58,12 @@ final class SessionTest extends TestCase
         $this->server_vars = new Dictionary();
         $this->server_vars['HTTP_USER_AGENT'] = 'MockUserAgent';
         $this->server_vars['REMOTE_ADDR'] = '127.0.0.1';
+
+        // Make the cache use a virtual test path
+        vfsStreamWrapper::register();
+        vfsStreamWrapper::setRoot(new vfsStreamDirectory('cachedir'));
+        $this->dir = vfsStream::url('cachedir');
+        Cache::setCachePath($this->dir);
     }
 
     public function tearDown()

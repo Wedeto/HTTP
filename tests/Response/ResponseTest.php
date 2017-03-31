@@ -34,21 +34,6 @@ use Wedeto\HTTP\Request;
  */
 final class ResponseTest extends TestCase
 {
-    public function testSetAndGetRequest()
-    {
-        $req = new MockResponseRequest;
-
-        $a = new MockResponse();
-        $a->setRequest($req);
-        $this->assertEquals($req, $a->getRequest());
-    }
-
-    public function testUseDefaultRequest()
-    {
-        $a = new MockResponse();
-        $this->assertEquals(System::request(), $a->getRequest());
-    }
-
     public function testGetAndSetStatusCode()
     {
         $a = new MockResponse();
@@ -78,24 +63,10 @@ final class ResponseTest extends TestCase
         $a = new MockResponse();
         $this->assertEmpty($a->getHeaders());
     }
-
-    public function testDefaultNoTransformResponse()
-    {
-        $a = new MockResponse();
-        $this->assertNull($a->transformResponse('text/html'));
-        $this->assertNull($a->transformResponse('text/plain'));
-        $this->assertNull($a->transformResponse('application/json'));
-    }
 }
 
 class MockResponse extends Response
 {
     public function output(string $mime)
-    {}
-}
-
-class MockResponseRequest extends Request
-{
-    public function __construct()
     {}
 }

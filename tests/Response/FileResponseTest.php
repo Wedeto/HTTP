@@ -23,10 +23,14 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto\HTTP;
+namespace Wedeto\HTTP\Response;
 
 use PHPUnit\Framework\TestCase;
+use org\bovigo\vfs\vfsStream;
+use org\bovigo\vfs\vfsStreamWrapper;
+use org\bovigo\vfs\vfsStreamDirectory;
 
+use Wedeto\Log\LoggerFactory;
 use Wedeto\Log\Logger;
 use Wedeto\Log\MemLogger;
 use Wedeto\IO\Dir;
@@ -40,28 +44,32 @@ final class FileResponseTest extends TestCase
     private $path;
     private $file;
     private $config;
+    
+    private $logger;
+    private $memlog;
 
     public function setUp()
     {
-        $this->path = $cpath->var . '/test';
-        Dir::mkdir($this->path);
-        $this->file = tempnam($this->path, 'fileresponse');
+        $this->logger = Logger::getLogger(FileResponse::class);
+        FileResponse::setLogger($this->logger);
+        $this->memlog = new MemLogger("debug");
+        $this->logger->addLogHandler($this->memlog);
+
+        // Make the cache use a virtual test path
+        vfsStreamWrapper::register();
+        vfsStreamWrapper::setRoot(new vfsStreamDirectory('test'));
+
+        $this->path = vfsStream::url('test');
+        $this->file = $this->path . "/testfile.dat";
 
         $fh = fopen($this->file, 'w');
         fwrite($fh, $this->msg);
         fclose($fh);
-
-        $this->config = System::config();
-        $this->config->set('io', 'use_send_file', null);
     }
 
     public function tearDown()
     {
-        Dir::rmtree($this->path);
-        $this->config->set('io', 'use_send_file', null);
-
-        $logger = Logger::getLogger(FileResponse::class);
-        $logger->removeLogHandlers();
+        $this->logger->removeLogHandlers();
     }
 
     public function testFileResponse()
@@ -124,10 +132,6 @@ final class FileResponseTest extends TestCase
 
     public function testFileDownloadInvalidLength()
     {
-        $logger = Logger::getLogger(FileResponse::class);
-        $memlogger = new MemLogger("debug");
-        $logger->addLogHandler($memlogger);
-
         $a = new FileResponse($this->file, 'foobar.txt', true);
 
         $this->assertEquals($this->file, $a->getFileName());
@@ -148,14 +152,15 @@ final class FileResponseTest extends TestCase
         $this->assertEquals('foobarbaz', $actual);
 
 		// Validate length error message
-		$log = $memlogger->getLog();
+		$log = $this->memlog->getLog();
+        var_dump($log);
 		$this->assertEquals(['   WARNING: FileResponse promised to send 6 bytes but 9 were actually transfered of file foobar.txt'], $log);
     }
 
     public function testFileResponseXSendFile()
     {
-        $this->config->set('io', 'use_send_file', true);
         $a = new FileResponse($this->file, 'foobar.txt', false);
+        $a->setUseXSendFile(true);
         $this->assertEquals($this->file, $a->getFileName());
         $this->assertEquals('foobar.txt', $a->getOutputFileName());
 

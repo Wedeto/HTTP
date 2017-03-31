@@ -23,10 +23,10 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto\HTTP;
+namespace Wedeto\HTTP\Response;
 
 use PHPUnit\Framework\TestCase;
-use Wedeto\Dictionary;
+use Wedeto\Util\Dictionary;
 
 /**
  * @covers Wedeto\HTTP\DataResponse
@@ -37,7 +37,7 @@ final class DataResponseTest extends TestCase
     {
         $a = new DataResponse(array('a' => 'b'));
 
-        $dict = $a->getDictionary();
+        $dict = $a->getData();
         $this->assertEquals("b", $dict['a']);
     }
 
@@ -46,7 +46,7 @@ final class DataResponseTest extends TestCase
         $dict = new Dictionary(['a' => 'b']);
         $a = new DataResponse($dict);
 
-        $dict2 = $a->getDictionary();
+        $dict2 = $a->getData();
         $this->assertEquals($dict2, $dict);
     }
 
@@ -84,7 +84,7 @@ final class DataResponseTest extends TestCase
         $actual = ob_get_contents();
         ob_end_clean();
 
-        $expected = "0 = '1'\n1 = '2'\n2 = '3'\n";
+        $expected = "[1, 2, 3]";
         $this->assertEquals($expected, $actual);
     }
 }

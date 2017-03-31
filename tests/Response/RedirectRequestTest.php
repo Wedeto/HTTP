@@ -23,10 +23,11 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto\HTTP;
+namespace Wedeto\HTTP\Response;
 
 use PHPUnit\Framework\TestCase;
-use Wedeto\Platform\System;
+
+use Wedeto\HTTP\URL;
 
 /**
  * @covers Wedeto\HTTP\RedirectRequest

@@ -64,7 +64,7 @@ class Error extends Response
     public function getResponse()
     {
         if (empty($this->response))
-            $this->response = new StringResponse(WF::str($this->getPrevious()), "text/plain");
+            $this->response = new StringResponse(WF::str($this->getPrevious() ?? $this), "text/plain");
 
         return $this->response;
     }

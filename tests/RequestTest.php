@@ -41,6 +41,8 @@ final class RequestTest extends TestCase
     private $cookie;
     private $config;
 
+    private $url;
+
     private $path;
     private $resolve;
 
@@ -64,24 +66,11 @@ final class RequestTest extends TestCase
             'HTTP_ACCEPT' => 'text/plain;q=1,text/html;q=0.9'
         );
 
+        $this->url = new URL('https://www.example.com/foo');
+
         $this->cookie = array(
             'session_id' => '1234'
         );
-
-        $config = array(
-            'site' => array(
-                'url' => 'http://www.example.com',
-                'language' => 'en'
-            ),
-            'cookie' => array(
-                'lifetime' => 60,
-                'httponly' => true
-            )
-        );
-        $this->config = new Dictionary($config);
-
-        $this->path = System::path();
-        $this->resolve = new Resolver($this->path);
     }
 
     /**
@@ -186,7 +175,7 @@ final class RequestTest extends TestCase
     public function testNoScheme()
     {
         unset($this->server['REQUEST_SCHEME']);
-        $req = new Request($this->get, $this->post, $this->cookie, $this->server, $this->config, $this->path, $this->resolve);
+        $req = new Request($this->get, $this->post, $this->cookie, $this->server);
         
         $expected = new URL('/foo');
         $this->assertEquals($expected, $req->url);
@@ -197,9 +186,8 @@ final class RequestTest extends TestCase
 
     public function testStartSession()
     {
-        $req = new Request($this->get, $this->post, $this->cookie, $this->server, $this->config, $this->path, $this->resolve);
-        $req->resolveApp();
-        $req->startSession();
+        $req = new Request($this->get, $this->post, $this->cookie, $this->server);
+        $req->startSession($this->url);
 
         $sess_object = $req->session;
 
@@ -207,14 +195,14 @@ final class RequestTest extends TestCase
         $_SESSION['foobar'] = rand();
         $this->assertEquals($_SESSION, $req->session->getAll());
 
-        $req->startSession();
+        $req->startSession($this->url);
         $this->assertEquals($sess_object, $req->session);
 
     }
 
     public function testWants()
     {
-        $req = new Request($this->get, $this->post, $this->cookie, $this->server, $this->config, $this->path, $this->resolve);
+        $req = new Request($this->get, $this->post, $this->cookie, $this->server);
 
         $req->accept = Request::parseAccept('text/html;q=1,text/plain;q=0.9');
         $this->assertFalse($req->wantJSON());
