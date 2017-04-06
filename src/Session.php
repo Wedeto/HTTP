@@ -30,6 +30,7 @@ use DateInterval;
 
 use Wedeto\Util\Cache;
 use Wedeto\Util\Dictionary;
+use Wedeto\Util\Type;
 use Wedeto\Util\Date;
 use Wedeto\Util\Functions as WF;
 use Wedeto\Util\ErrorInterceptor;
@@ -66,7 +67,7 @@ class Session extends Dictionary
     public function __construct(URL $base_url, Dictionary $config, Dictionary $server_vars)
     {
         $this->server_vars = $server_vars;
-        if ($config->has('cookie', Dictionary::TYPE_ARRAY))
+        if ($config->has('cookie', Type::ARRAY))
             $this->config = $config->get('cookie');
         else
             $this->config = $config;
