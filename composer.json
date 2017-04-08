@@ -5,13 +5,13 @@
     "homepage": "https://wedeto.net",
     "type": "library",
     "require": {
-        "Wedeto/Util": "@dev",
-        "Wedeto/FileFormats": "@dev",
+        "Wedeto/Util": "0.9.*",
+        "Wedeto/FileFormats": "0.9.*",
         "php": ">=7.0.0"
     },
     "require-dev": {
         "mikey179/vfsStream": "~1",
-        "Wedeto/Log": "@dev"
+        "Wedeto/Log": "0.9.*"
     },
     "autoload": {
         "psr-4": {
@@ -22,20 +22,6 @@
         {
             "name": "Egbert van der Wal",
             "email": "ewal@pointpro.nl"
-        }
-    ],
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/Wedeto/Util"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/Wedeto/FileFormats"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/Wedeto/Log"
         }
     ]
 }
