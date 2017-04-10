@@ -30,7 +30,7 @@ use PHPUnit\Framework\TestCase;
 use Wedeto\HTTP\Request;
 
 /**
- * @covers Wedeto\HTTP\Response
+ * @covers Wedeto\HTTP\Response\Response
  */
 final class ResponseTest extends TestCase
 {

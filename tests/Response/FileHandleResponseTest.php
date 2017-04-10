@@ -27,10 +27,10 @@ namespace Wedeto\HTTP\Response;
 
 use PHPUnit\Framework\TestCase;
 use Wedeto\Log\Logger;
-use Wedeto\Log\MemLogger;
+use Wedeto\Log\Writer\MemLogWriter;
 
 /**
- * @covers Wedeto\HTTP\FileHandleResponse
+ * @covers Wedeto\HTTP\Response\FileHandleResponse
  */
 final class FileHandleResponseTest extends TestCase
 {
@@ -44,8 +44,8 @@ final class FileHandleResponseTest extends TestCase
     {
         $this->logger = Logger::getLogger(FileHandleResponse::class);
         FileHandleResponse::setLogger($this->logger);
-        $this->memlog = new MemLogger('debug');
-        $this->logger->addLogHandler($this->memlog);
+        $this->memlog = new MemLogWriter('debug');
+        $this->logger->addLogWriter($this->memlog);
 
         $this->fh = fopen('php://memory', 'rw');
         fwrite($this->fh, $this->msg);
@@ -56,7 +56,7 @@ final class FileHandleResponseTest extends TestCase
     {
         fclose($this->fh);
 
-        $this->logger->removeLogHandlers();
+        $this->logger->removeLogWriters();
     }
 
     public function testFileHandle()
@@ -104,8 +104,8 @@ final class FileHandleResponseTest extends TestCase
     public function testFileHandleDownloadInvalidLength()
     {
         $logger = Logger::getLogger(FileHandleResponse::class);
-        $memlogger = new MemLogger("debug");
-        $logger->addLogHandler($memlogger);
+        $memlogger = new MemLogWriter("debug");
+        $logger->addLogWriter($memlogger);
 
         $a = new FileHandleResponse($this->fh, 'foobar.txt', 'text/plain', true);
         $a->setLength(60);

@@ -28,7 +28,7 @@ namespace Wedeto\HTTP\Response;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers Wedeto\HTTP\StringResponse
+ * @covers Wedeto\HTTP\Response\StringResponse
  */
 final class StringResponseTest extends TestCase
 {

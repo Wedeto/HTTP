@@ -29,7 +29,7 @@ use PHPUnit\Framework\TestCase;
 
 use Wedeto\Util\Dictionary;
 use Wedeto\Log\Logger;
-use Wedeto\Log\MemLogger;
+use Wedeto\Log\Writer\MemLogWriter;
 
 use Wedeto\HTTP\Response\Response;
 use Wedeto\HTTP\Response\StringResponse;
@@ -43,7 +43,7 @@ use RuntimeException;
  */
 final class ResponderTest extends TestCase
 {
-    private $rb;
+    private $responder;
     private $config;
     private $request;
 
@@ -54,41 +54,43 @@ final class ResponderTest extends TestCase
         $this->config->set('site', 'tidy-output', true);
 
         $this->request = Request::createFromGlobals();
-        $this->rb = new Responder($this->request);
+        $this->responder = new Responder($this->request);
+        $this->responder->resetLogger();
     }
 
     public function tearDown()
     {
         $logger = Logger::getLogger(Responder::class);
-        $logger->removeLogHandlers();
+        $logger->removeLogWriters();
     }
 
     public function testResponder()
     {
         $cookie = new Cookie('foo', 'bar');
-        $this->rb->addCookie($cookie);
+        $this->responder->addCookie($cookie);
 
-        $lst = $this->rb->getCookies();
+        $lst = $this->responder->getCookies();
         $this->assertEquals(['foo' => $cookie], $lst);
 
-        $this->rb->setHeader('Content-Type', 'foo/bar');
-        $this->rb->setHeader('Content-type', 'bar/baz');
+        $this->responder->setHeader('Content-Type', 'foo/bar');
+        $this->responder->setHeader('Content-type', 'bar/baz');
 
-        $headers = $this->rb->getHeaders();
+        $headers = $this->responder->getHeaders();
         $this->assertEquals(['Content-Type' => 'bar/baz'], $headers);
 
-        $this->rb->setResponseCode(100);
-        $this->assertEquals(100, $this->rb->getResponseCode());
+        $this->responder->setResponseCode(100);
+        $this->assertEquals(100, $this->responder->getResponseCode());
 
-        $this->rb->setResponseCode(500);
-        $this->assertEquals(500, $this->rb->getResponseCode());
+        $this->responder->setResponseCode(500);
+        $this->assertEquals(500, $this->responder->getResponseCode());
     }
 
     public function testEndOutputBuffers()
     {
         $logger = Logger::getLogger(Responder::class);
-        $memlogger = new MemLogger("debug");
-        $logger->addLogHandler($memlogger);
+        Responder::setLogger($logger);
+        $memlogger = new MemLogWriter("debug");
+        $logger->addLogWriter($memlogger);
 
         $start_lvl = ob_get_level();
 
@@ -97,7 +99,7 @@ final class ResponderTest extends TestCase
         ob_start();
         printf('foo');
 
-        $this->rb->endAllOutputBuffers($start_lvl);
+        $this->responder->endAllOutputBuffers($start_lvl);
 
         $log = $memlogger->getLog();
         
@@ -111,26 +113,26 @@ final class ResponderTest extends TestCase
     public function testInvalidResponseCode()
     {
         $logger = Logger::getLogger(Responder::class);
-        $memlogger = new MemLogger("debug");
+        $memlogger = new MemLogWriter("debug");
         Responder::setLogger($logger);
 
-        $logger->addLogHandler($memlogger);
-        $this->rb->setResponseCode(900);
+        $logger->addLogWriter($memlogger);
+        $this->responder->setResponseCode(900);
 
         $log = $memlogger->getLog();
         $expected = 'CRITICAL: Invalid status 900';
         $this->assertTrue(strpos($log[0], $expected) !== false);
 
-        $this->assertEquals(500, $this->rb->getResponseCode());
+        $this->assertEquals(500, $this->responder->getResponseCode());
     }
 
     public function testSetResponse()
     {
         $resp = new StringResponse('foobar', 'text/plain');
 
-        $this->rb->setResponse($resp);
+        $this->responder->setResponse($resp);
 
-        $actual = $this->rb->getResponse();
+        $actual = $this->responder->getResponse();
         $this->assertInstanceOf(StringResponse::class, $resp);
         $this->assertEquals($resp, $actual);
     }
@@ -138,55 +140,61 @@ final class ResponderTest extends TestCase
     public function testRespond()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponder($this->request);
+        $this->responder = new MockResponder($this->request);
 
         $thr = new \InvalidArgumentException('foobar');
-        $this->rb->setResponse(new Error(500, "Error", $thr));
+        $response = new StringResponse(json_encode(['foo' => 'bar']), 'application/json');
+        $this->responder->setResponse($response);
 
         try
         {
-            $this->rb->respond();
+            $this->responder->respond();
         }
-        catch (MockResponseResponse $response)
+        catch (MockResponseResponse $mock_response)
         {
-            $this->assertEquals('application/json', $response->mime);
-
-            $resp = $response->getPrevious();
-            $this->assertInstanceOf(DataResponse::class, $resp);
-            $dict = $resp->getDictionary();
-
-            $found = false;
-            foreach ($dict->getSection('exception') as $line)
-            {
-                if (strpos($line, 'Exception: InvalidArgumentException [0] foobar') !== false)
-                {
-                    $found = true;
-                    break;
-                }
-            }
-            $this->assertTrue($found);
+            $this->assertEquals('application/json', $mock_response->mime);
+            $actual = $mock_response->getPrevious();
+            $this->assertEquals(spl_object_hash($response), spl_object_hash($actual));
         }
         ob_start(); // It will have closed PHPUnits output buffer ;-)
     }
 
     public function testRespondNoResponse()
     {
-        $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponder($this->request);
+        $this->request->accept = array('text/plain' => 1);
+        $this->responder = new MockResponder($this->request);
 
         try
         {
-            $this->rb->respond();
+            $this->responder->respond();
         }
         catch (MockResponseResponse $response)
         {
-            $this->assertEquals('application/json', $response->mime);
+            $this->assertEquals('text/plain', $response->mime);
 
             $resp = $response->getPrevious();
-            $this->assertInstanceOf(DataResponse::class, $resp);
-            $dict = $resp->getDictionary();
+            $this->assertInstanceOf(Error::class, $resp);
+            $this->assertContains("No output produced", $resp->getMessage());
+        }
+        ob_start(); // It will have closed PHPUnits output buffer ;-)
+    }
 
-            $this->assertEquals('No output produced', $dict['message']);
+    public function testRespondUnacceptableResponse()
+    {
+        $this->request->accept = array('application/javascript' => 1);
+        $this->responder = new MockResponder($this->request);
+
+        try
+        {
+            $this->responder->respond();
+        }
+        catch (MockResponseResponse $response)
+        {
+            $this->assertEquals('text/html', $response->mime);
+
+            $resp = $response->getPrevious();
+            $this->assertInstanceOf(Error::class, $resp);
+            $this->assertContains("Not Acceptable", $resp->getMessage());
         }
         ob_start(); // It will have closed PHPUnits output buffer ;-)
     }
@@ -194,13 +202,13 @@ final class ResponderTest extends TestCase
     public function testRespondEmptyResponse()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponder($this->request);
+        $this->responder = new MockResponder($this->request);
         $resp = new MockResponseResponse(array(), new RuntimeException('foo'));
-        $this->rb->setThrowable($resp);
+        $this->responder->setResponse($resp);
 
         try
         {
-            $this->rb->respond();
+            $this->responder->respond();
         }
         catch (MockResponseResponse $response)
         {
@@ -212,14 +220,14 @@ final class ResponderTest extends TestCase
     public function testTransformResponseFails()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponder($this->request);
+        $this->responder = new MockResponder($this->request);
         $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
         $resp->fail_transform = true;
-        $this->rb->setThrowable($resp);
+        $this->responder->setResponse($resp);
 
         try
         {
-            $this->rb->respond();
+            $this->responder->respond();
         }
         catch (MockResponseResponse $response)
         {
@@ -231,13 +239,13 @@ final class ResponderTest extends TestCase
     public function testResponseSetCustomHeaders()
     {
         $this->request->accept = array('application/json' => 1);
-        $this->rb = new MockResponder($this->request);
+        $this->responder = new MockResponder($this->request);
         $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
-        $this->rb->setThrowable($resp);
+        $this->responder->setResponse($resp);
 
         try
         {
-            $this->rb->respond();
+            $this->responder->respond();
         }
         catch (MockResponseResponse $response)
         {
@@ -246,7 +254,7 @@ final class ResponderTest extends TestCase
             $this->assertInstanceOf(MockResponseResponse::class, $prev);
         }
 
-        $headers = $this->rb->getHeaders();
+        $headers = $this->responder->getHeaders();
         $found = false;
 
         foreach ($headers as $k => $v)

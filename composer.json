@@ -11,7 +11,7 @@
     },
     "require-dev": {
         "mikey179/vfsStream": "~1",
-        "Wedeto/Log": "0.9.*"
+        "Wedeto/Log": "@dev"
     },
     "autoload": {
         "psr-4": {

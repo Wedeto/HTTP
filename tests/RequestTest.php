@@ -75,7 +75,6 @@ final class RequestTest extends TestCase
 
     /**
      * @covers Wedeto\HTTP\Request::__construct
-     * @covers Wedeto\Session::start
      */
     public function testRequestVariables()
     {

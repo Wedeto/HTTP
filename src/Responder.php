@@ -263,7 +263,7 @@ class Responder
         if (empty($mime) || !$this->request->isAccepted($mime))
         {
             $mime = 'text/html';
-            $this->response = new Error(406, "Not Acceptable", td('No acceptable response can be offered', 'Wedeto.HTTP'));
+            $this->response = new Error(406, "Not Acceptable", 'No acceptable response can be offered');
         }
 
         // Execute hooks
@@ -346,6 +346,12 @@ class Responder
 
         // We're done
         self::$logger->debug("** Finished processing request to {0}", [$this->request->url]);
-        die();
+        $this->die();
+    }
+        
+    protected function die()
+    {
+        if (!defined('WEDETO_TEST') || WEDETO_TEST === 0) die();
+        throw new \RuntimeException("Die request");
     }
 }

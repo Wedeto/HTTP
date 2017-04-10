@@ -30,7 +30,7 @@ use PHPUnit\Framework\TestCase;
 use Wedeto\HTTP\URL;
 
 /**
- * @covers Wedeto\HTTP\RedirectRequest
+ * @covers Wedeto\HTTP\Response\RedirectRequest
  */
 final class RedirectRequestTest extends TestCase
 {

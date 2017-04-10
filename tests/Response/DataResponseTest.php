@@ -29,7 +29,7 @@ use PHPUnit\Framework\TestCase;
 use Wedeto\Util\Dictionary;
 
 /**
- * @covers Wedeto\HTTP\DataResponse
+ * @covers Wedeto\HTTP\Response\DataResponse
  */
 final class DataResponseTest extends TestCase
 {

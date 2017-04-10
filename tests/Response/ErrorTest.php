@@ -30,14 +30,10 @@ use PHPUnit\Framework\TestCase;
 use Wedeto\HTTP\Request;
 
 /**
- * @covers Wedeto\HTTP\Error
+ * @covers Wedeto\HTTP\Response\Error
  */
-final class HTTPErrorTest extends TestCase
+final class ErrorTest extends TestCase
 {
-    /**
-     * @covers Wedeto\HTTP\Error::__construct
-     * @covers Wedeto\HTTP\Error::getUserMessage
-     */
     public function testHTTPError()
     {
         $a = new Error(400, "Error");

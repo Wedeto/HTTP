@@ -42,7 +42,7 @@ use Wedeto\HTTP\URL;
 define('WEDETO_TEST', 1);
 
 /**
- * @covers Wedeto\Session
+ * @covers Wedeto\HTTP\Session
  */
 final class SessionTest extends TestCase
 {
@@ -73,9 +73,9 @@ final class SessionTest extends TestCase
     }
     
     /**
-     * @covers Wedeto\Session::__construct
-     * @covers Wedeto\Session::getCookie
-     * @covers Wedeto\Session::startHTTPSession
+     * @covers Wedeto\HTTP\Session::__construct
+     * @covers Wedeto\HTTP\Session::getCookie
+     * @covers Wedeto\HTTP\Session::startHTTPSession
      */
     public function testSession()
     {
@@ -92,10 +92,10 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers Wedeto\Session::__construct
-     * @covers Wedeto\Session::getCookie
-     * @covers Wedeto\Session::startHTTPSession
-     * @covers Wedeto\Session::resetID
+     * @covers Wedeto\HTTP\Session::__construct
+     * @covers Wedeto\HTTP\Session::getCookie
+     * @covers Wedeto\HTTP\Session::startHTTPSession
+     * @covers Wedeto\HTTP\Session::resetID
      */
     public function testSessionReset()
     {
@@ -116,11 +116,11 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers Wedeto\Session::__construct
-     * @covers Wedeto\Session::getCookie
-     * @covers Wedeto\Session::startHTTPSession
-     * @covers Wedeto\Session::destroy
-     * @covers Wedeto\Session::setSessionID
+     * @covers Wedeto\HTTP\Session::__construct
+     * @covers Wedeto\HTTP\Session::getCookie
+     * @covers Wedeto\HTTP\Session::startHTTPSession
+     * @covers Wedeto\HTTP\Session::destroy
+     * @covers Wedeto\HTTP\Session::setSessionID
      */
     public function testSessionDestroy()
     {
@@ -140,9 +140,9 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers Wedeto\Session::__construct
-     * @covers Wedeto\Session::startHTTPSession
-     * @covers Wedeto\Session::getCookie
+     * @covers Wedeto\HTTP\Session::__construct
+     * @covers Wedeto\HTTP\Session::startHTTPSession
+     * @covers Wedeto\HTTP\Session::getCookie
      */
     public function testSessionConfigWithLifetime()
     {
@@ -166,9 +166,9 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers Wedeto\Session::__construct
-     * @covers Wedeto\Session::startHTTPSession
-     * @covers Wedeto\Session::getCookie
+     * @covers Wedeto\HTTP\Session::__construct
+     * @covers Wedeto\HTTP\Session::startHTTPSession
+     * @covers Wedeto\HTTP\Session::getCookie
      */
     public function testSessionConfigWithLifetimeIntValue()
     {
@@ -192,9 +192,9 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers Wedeto\Session::__construct
-     * @covers Wedeto\Session::startCLISession
-     * @covers Wedeto\Session::getCookie
+     * @covers Wedeto\HTTP\Session::__construct
+     * @covers Wedeto\HTTP\Session::startCLISession
+     * @covers Wedeto\HTTP\Session::getCookie
      */
     public function testCLISession()
     {
@@ -207,14 +207,14 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers Wedeto\Session::__construct
-     * @covers Wedeto\Session::startHTTPSession
-     * @covers Wedeto\Session::getSessionName
-     * @covers Wedeto\Session::getSessionID
-     * @covers Wedeto\Session::setSessionID
-     * @covers Wedeto\Session::secureSession
-     * @covers Wedeto\Session::resetID
-     * @covers Wedeto\Session::close
+     * @covers Wedeto\HTTP\Session::__construct
+     * @covers Wedeto\HTTP\Session::startHTTPSession
+     * @covers Wedeto\HTTP\Session::getSessionName
+     * @covers Wedeto\HTTP\Session::getSessionID
+     * @covers Wedeto\HTTP\Session::setSessionID
+     * @covers Wedeto\HTTP\Session::secureSession
+     * @covers Wedeto\HTTP\Session::resetID
+     * @covers Wedeto\HTTP\Session::close
      */
     public function testSessionExpires()
     {
@@ -257,14 +257,14 @@ final class SessionTest extends TestCase
     }
 
     /**
-     * @covers Wedeto\Session::__construct
-     * @covers Wedeto\Session::startHTTPSession
-     * @covers Wedeto\Session::getSessionName
-     * @covers Wedeto\Session::getSessionID
-     * @covers Wedeto\Session::setSessionID
-     * @covers Wedeto\Session::secureSession
-     * @covers Wedeto\Session::resetID
-     * @covers Wedeto\Session::close
+     * @covers Wedeto\HTTP\Session::__construct
+     * @covers Wedeto\HTTP\Session::startHTTPSession
+     * @covers Wedeto\HTTP\Session::getSessionName
+     * @covers Wedeto\HTTP\Session::getSessionID
+     * @covers Wedeto\HTTP\Session::setSessionID
+     * @covers Wedeto\HTTP\Session::secureSession
+     * @covers Wedeto\HTTP\Session::resetID
+     * @covers Wedeto\HTTP\Session::close
      */
     public function testSessionDestroyed()
     {

@@ -32,11 +32,11 @@ use org\bovigo\vfs\vfsStreamDirectory;
 
 use Wedeto\Log\LoggerFactory;
 use Wedeto\Log\Logger;
-use Wedeto\Log\MemLogger;
+use Wedeto\Log\Writer\MemLogWriter;
 use Wedeto\IO\Dir;
 
 /**
- * @covers Wedeto\HTTP\FileResponse
+ * @covers Wedeto\HTTP\Response\FileResponse
  */
 final class FileResponseTest extends TestCase
 {
@@ -52,8 +52,8 @@ final class FileResponseTest extends TestCase
     {
         $this->logger = Logger::getLogger(FileResponse::class);
         FileResponse::setLogger($this->logger);
-        $this->memlog = new MemLogger("debug");
-        $this->logger->addLogHandler($this->memlog);
+        $this->memlog = new MemLogWriter("debug");
+        $this->logger->addLogWriter($this->memlog);
 
         // Make the cache use a virtual test path
         vfsStreamWrapper::register();
@@ -69,7 +69,7 @@ final class FileResponseTest extends TestCase
 
     public function tearDown()
     {
-        $this->logger->removeLogHandlers();
+        $this->logger->removeLogWriters();
     }
 
     public function testFileResponse()
