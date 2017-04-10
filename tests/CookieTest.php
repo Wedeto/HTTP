@@ -38,6 +38,9 @@ final class CookieTest extends TestCase
     {
         $a = new Cookie('foo', 'bar');
 
+        $exp = $a->getExpires();
+        $this->assertGreaterThan(time(), $exp);
+
         $this->assertEquals('foo', $a->getName());
         $this->assertEquals('bar', $a->getValue());
 
@@ -103,6 +106,5 @@ final class CookieTest extends TestCase
         $a->setExpiresNow();
         $expected = time();
         $this->assertLessThan($expected, $a->getExpires());
-
     }
 }

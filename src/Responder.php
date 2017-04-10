@@ -57,6 +57,9 @@ class Responder
     /** The caching policy */
     protected $cache_policy = null;
 
+    /** The target output buffer level before emitting output */
+    protected $target_ob_level = 0;
+
     /**
      * Create the response to a Request
      * @param Request $request The request this is the response to
@@ -84,6 +87,30 @@ class Responder
     {
         $this->request = $request;
         return $this;
+    }
+
+    /**
+     * Set the target output buffer level.
+     * Responder will be sure to close all existing output buffers before
+     * sending a response.
+     *
+     * By setting the target level higher than 0, some output buffers may
+     * remain open. Useful for testing.
+     * @param int $level The target output buffer level
+     * @return Responder Provides fluent interface
+     */
+    public function setTargetOutputBufferLevel(int $level)
+    {
+        $this->target_ob_level = $level > 0 ? $level : 0;
+        return $this;
+    }
+
+    /**
+     * @return int The target output buffer level
+     */
+    public function getTargetOutputBufferLevel()
+    {
+        return $this->target_ob_level;
     }
 
     /**
@@ -237,7 +264,7 @@ class Responder
             $this->response = new Error(500, "No output produced");
         
         // Close and log all script output that hasn't been cleaned yet
-        $this->endAllOutputBuffers();
+        $this->endAllOutputBuffers($this->target_ob_level);
 
         // Add Content-Type mime header
         $mime = $this->response->getMimeTypes();
@@ -309,9 +336,6 @@ class Responder
      *
      * @param string $mime The mime-type of the response that has been selected
      *
-     * @codeCoverageIgnore This method is full of 'side-effects': output,
-     *                     sending HTTP headers, sending cookies, setting status
-     *                     code.
      */
     protected function doOutput(string $mime)
     {
@@ -351,7 +375,7 @@ class Responder
         
     protected function die()
     {
-        if (!defined('WEDETO_TEST') || WEDETO_TEST === 0) die();
+        if (!defined('WEDETO_TEST') || WEDETO_TEST !== 1) die();
         throw new \RuntimeException("Die request");
     }
 }

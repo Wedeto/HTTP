@@ -240,6 +240,9 @@ class Cookie
 
     public function getExpires()
     {
+        if ($this->expires === null)
+            $this->setExpiresIn(new DateInterval('PT30M'));
+
         return $this->expires->getTimestamp();
     }
     

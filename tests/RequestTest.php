@@ -212,4 +212,55 @@ final class RequestTest extends TestCase
         $type = $req->chooseResponse(array('text/plain', 'text/html'));
         $this->assertEquals('text/html', $type);
     }
+
+    public function testCreateFromGlobals()
+    {
+        $req = Request::createFromGlobals();
+        $this->assertInstanceOf(Request::class, $req);
+
+        $vals = &$req->get->get();
+        $this->assertEquals($_GET, $vals);
+
+        $_GET['test'] = rand();
+        $this->assertEquals($_GET, $vals);
+
+        $vals = &$req->post->get();
+        $this->assertEquals($_POST, $vals);
+
+        $_GET['test'] = rand();
+        $this->assertEquals($_POST, $vals);
+
+        $vals = &$req->server->get();
+        $this->assertEquals($_SERVER, $vals);
+
+        $_GET['test'] = rand();
+        $this->assertEquals($_SERVER, $vals);
+
+        $vals = &$req->cookie->get();
+        $this->assertEquals($_COOKIE, $vals);
+
+        $_GET['test'] = rand();
+        $this->assertEquals($_COOKIE, $vals);
+    }
+
+    public function testGetSession()
+    {
+        $req = Request::createFromGlobals();
+        $ses = null;
+
+        try
+        {
+            $sess = $req->getSession();
+            $this->assertNull($sess);
+            $req->startSession($this->url, $this->config);
+
+            $sess = $req->getSession();
+            $this->assertInstanceOf(Session::class, $sess);
+        }
+        finally
+        {
+            if ($sess instanceof Session)
+                $sess->destroy();
+        }
+    }
 }

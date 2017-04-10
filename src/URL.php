@@ -250,12 +250,12 @@ class URL implements \ArrayAccess
 
     public function getSuffix()
     {
-        $path = $this->path ?: "";
-        for ($i = strlen($path - 1); $i >= 0; --$i)
+        $path = $this->path ?: " ";
+        for ($i = strlen($path) - 1; $i >= 0; --$i)
         {
             $ch = substr($path, $i, 1);
             if ($ch === '/')
-                return null;
+                break;
             
             $pch = $i > 0 ? substr($path, $i - 1, 1) : null;
             if ($ch === '.' && $pch !== '/')

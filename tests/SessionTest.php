@@ -39,7 +39,7 @@ use Wedeto\Util\Cache;
 
 use Wedeto\HTTP\URL;
 
-define('WEDETO_TEST', 1);
+if (!defined('WEDETO_TEST')) define('WEDETO_TEST', 1);
 
 /**
  * @covers Wedeto\HTTP\Session

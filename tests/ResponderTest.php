@@ -29,6 +29,7 @@ use PHPUnit\Framework\TestCase;
 
 use Wedeto\Util\Dictionary;
 use Wedeto\Log\Logger;
+use Wedeto\Log\LoggerFactory;
 use Wedeto\Log\Writer\MemLogWriter;
 
 use Wedeto\HTTP\Response\Response;
@@ -37,6 +38,8 @@ use Wedeto\HTTP\Response\Error;
 
 use Throwable;
 use RuntimeException;
+
+if (!defined('WEDETO_TEST')) define('WEDETO_TEST', 1);
 
 /**
  * @covers Wedeto\HTTP\Responder
@@ -55,7 +58,7 @@ final class ResponderTest extends TestCase
 
         $this->request = Request::createFromGlobals();
         $this->responder = new Responder($this->request);
-        $this->responder->resetLogger();
+        $this->responder->setLogger(new \Psr\Log\NullLogger);
     }
 
     public function tearDown()
@@ -85,6 +88,48 @@ final class ResponderTest extends TestCase
         $this->assertEquals(500, $this->responder->getResponseCode());
     }
 
+    public function testReplaceRequest()
+    {
+        $this->assertEquals($this->request, $this->responder->getRequest());
+
+        $mocker = $this->prophesize(Request::class);
+        $mock = $mocker->reveal();
+        $this->assertEquals($this->responder, $this->responder->setRequest($mock));
+        $this->assertEquals($mock, $this->responder->getRequest());
+    }
+
+    public function testSetCachePolicy()
+    {
+        $response = new StringResponse("foobar");
+        $cp = new CachePolicy;
+        $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC);
+        $response->setCachePolicy($cp);
+        $this->responder->setResponse($response);
+
+        $this->assertEquals($cp, $this->responder->getCachePolicy());
+
+        $new_cp = new CachePolicy;
+        $new_cp->setCachePolicy(CachePolicy::CACHE_PRIVATE);
+        $this->assertEquals($this->responder, $this->responder->setCachePolicy($new_cp));
+
+        $this->assertEquals($new_cp, $this->responder->getCachePolicy());
+
+        $this->responder = new MockResponder($this->request);
+        $this->responder->setResponse($response);
+
+        // Avoid responder closing PHPUnits ob_buffer
+        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
+        try
+        {
+            $this->responder->respond();
+        }
+        catch (MockResponseResponse $mock_response)
+        {
+            $actual = $mock_response->getPrevious();
+            $this->assertEquals($response, $actual);
+        }
+    }
+
     public function testEndOutputBuffers()
     {
         $logger = Logger::getLogger(Responder::class);
@@ -108,6 +153,17 @@ final class ResponderTest extends TestCase
             '     DEBUG: Script output: 2/1: bar'
         ];
         $this->assertEquals($expected, $log);
+    }
+
+    public function testEndOutputBuffersWithoutLogger()
+    {
+        $start_lvl = ob_get_level();
+        ob_start();
+        printf('bar');
+        ob_start();
+        printf('foo');
+        $this->responder->endAllOutputBuffers($start_lvl);
+        $this->assertEquals($start_lvl, ob_get_level());
     }
 
     public function testInvalidResponseCode()
@@ -146,6 +202,8 @@ final class ResponderTest extends TestCase
         $response = new StringResponse(json_encode(['foo' => 'bar']), 'application/json');
         $this->responder->setResponse($response);
 
+        // Avoid responder closing PHPUnits ob_buffer
+        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
         try
         {
             $this->responder->respond();
@@ -156,7 +214,6 @@ final class ResponderTest extends TestCase
             $actual = $mock_response->getPrevious();
             $this->assertEquals(spl_object_hash($response), spl_object_hash($actual));
         }
-        ob_start(); // It will have closed PHPUnits output buffer ;-)
     }
 
     public function testRespondNoResponse()
@@ -164,6 +221,8 @@ final class ResponderTest extends TestCase
         $this->request->accept = array('text/plain' => 1);
         $this->responder = new MockResponder($this->request);
 
+        // Avoid responder closing PHPUnits ob_buffer
+        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
         try
         {
             $this->responder->respond();
@@ -176,7 +235,6 @@ final class ResponderTest extends TestCase
             $this->assertInstanceOf(Error::class, $resp);
             $this->assertContains("No output produced", $resp->getMessage());
         }
-        ob_start(); // It will have closed PHPUnits output buffer ;-)
     }
 
     public function testRespondUnacceptableResponse()
@@ -184,6 +242,8 @@ final class ResponderTest extends TestCase
         $this->request->accept = array('application/javascript' => 1);
         $this->responder = new MockResponder($this->request);
 
+        // Avoid responder closing PHPUnits ob_buffer
+        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
         try
         {
             $this->responder->respond();
@@ -196,7 +256,6 @@ final class ResponderTest extends TestCase
             $this->assertInstanceOf(Error::class, $resp);
             $this->assertContains("Not Acceptable", $resp->getMessage());
         }
-        ob_start(); // It will have closed PHPUnits output buffer ;-)
     }
 
     public function testRespondEmptyResponse()
@@ -206,6 +265,8 @@ final class ResponderTest extends TestCase
         $resp = new MockResponseResponse(array(), new RuntimeException('foo'));
         $this->responder->setResponse($resp);
 
+        // Avoid responder closing PHPUnits ob_buffer
+        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
         try
         {
             $this->responder->respond();
@@ -214,7 +275,6 @@ final class ResponderTest extends TestCase
         {
             $this->assertEquals('text/html', $response->mime);
         }
-        ob_start(); // It will have closed PHPUnits output buffer ;-)
     }
 
     public function testTransformResponseFails()
@@ -225,6 +285,8 @@ final class ResponderTest extends TestCase
         $resp->fail_transform = true;
         $this->responder->setResponse($resp);
 
+        // Avoid responder closing PHPUnits ob_buffer
+        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
         try
         {
             $this->responder->respond();
@@ -233,7 +295,6 @@ final class ResponderTest extends TestCase
         {
             $this->assertEquals('application/json', $response->mime);
         }
-        ob_start(); // It will have closed PHPUnits output buffer ;-)
     }
 
     public function testResponseSetCustomHeaders()
@@ -243,6 +304,8 @@ final class ResponderTest extends TestCase
         $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
         $this->responder->setResponse($resp);
 
+        // Avoid responder closing PHPUnits ob_buffer
+        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
         try
         {
             $this->responder->respond();
@@ -262,8 +325,94 @@ final class ResponderTest extends TestCase
                 $found = true;
 
         $this->assertTrue($found);
+    }
 
-        ob_start(); // It will have closed PHPUnits output buffer ;-)
+    /**
+     * @runInSeparateProcess
+     */
+    public function testRespondDoOutput()
+    {
+        $response = new StringResponse("Example output", 'text/html');
+        $cp = new CachePolicy;
+        $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC)->setExpiresInSeconds(3600);
+        $response->setCachePolicy($cp);
+        $this->responder->setResponse($response);
+
+        $expected_headers = $response->getHeaders();
+        $expected_headers = array_merge($expected_headers, $cp->getHeaders());
+        $expected_headers['Content-Type'] = 'text/html; charset=utf-8';
+
+        $cookie = new Cookie('foo', 'bar');
+        $this->responder->addCookie($cookie);
+
+        ob_start(); // Catch output
+        $this->responder->setTargetOutputBufferLevel(2);
+        try
+        {
+            $this->responder->respond();
+        }
+        catch (\RuntimeException $e)
+        {
+            $output = ob_get_contents();
+            ob_end_clean();
+            $this->assertEquals('Example output', $output);
+
+            $this->assertContains("Die request", $e->getMessage());
+            $headers = xdebug_get_headers();
+
+            $parsed = [];
+            $cookies = [];
+            foreach ($headers as $h)
+            {
+                $p = strpos($h, ':');
+                if ($p === false)
+                    continue;
+
+                $key = trim(substr($h, 0, $p));
+                $val = trim(substr($h, $p + 1));
+                if ($key !== 'Set-Cookie')
+                    $parsed[$key] = $val;
+                else
+                    $cookies[] = $val;
+            }
+
+            $this->assertEquals($expected_headers, $parsed);
+            $this->assertEquals(1, count($cookies));
+            $this->assertContains('foo=bar', $cookies[0]);
+        }
+    }
+
+    public function testRepondDoOutputWithoutHeaders()
+    {
+        $response = new StringResponse("Example output", 'text/html');
+        $cp = new CachePolicy;
+        $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC)->setExpiresInSeconds(3600);
+        $response->setCachePolicy($cp);
+        $this->responder->setResponse($response);
+
+        $logger = Logger::getLogger(Responder::class);
+        Responder::setLogger($logger);
+        $memlogger = new MemLogWriter("info");
+        $logger->addLogWriter($memlogger);
+
+        ob_start(); // Catch output
+        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(2));
+        $this->assertEquals(2, $this->responder->getTargetOutputBufferLevel());
+        try
+        {
+            $this->responder->respond();
+        }
+        catch (\RuntimeException $e)
+        {
+            $output = ob_get_contents();
+            ob_end_clean();
+            $this->assertEquals('Example output', $output);
+            $this->assertContains("Die request", $e->getMessage());
+
+            $log = $memlogger->getLog();
+            $this->assertEquals(1, count($log));
+            $this->assertContains("Headers were already sent when Responder", $log[0]);
+        }
     }
 }
 

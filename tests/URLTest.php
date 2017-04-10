@@ -393,4 +393,16 @@ final class URLTest extends TestCase
         $_SERVER['REQUEST_SCHEME'] = $backup;
     }
 
+    public function testSuffix()
+    {
+        $url = new URL('https://example.com/foo/bar.xml');
+        $this->assertEquals('.xml', $url->get('suffix'));
+
+        $url = new URL('https://example.com/foo/bar');
+        $this->assertNull($url->get('suffix'));
+
+        $url = new URL('bar');
+        $this->assertNull($url->get('suffix'));
+    }
+
 }

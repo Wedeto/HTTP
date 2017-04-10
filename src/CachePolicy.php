@@ -83,8 +83,8 @@ class CachePolicy
         $expire_date = date('r', $ts);
 
         $h = array();
-        //$h['Cache-Control'] = $this->cache_policy . ', max-age=' . $expires;
-        $h['Cache-Control'] = 'max-age=' . $expires;
+        $h['Pragma'] = 'max-age=' . $expires;
+        $h['Cache-Control'] = $this->cache_policy . ', max-age=' . $expires;
         $h['Pragma'] = $h['Cache-Control'];
         $h['Expires'] = $expire_date;
 

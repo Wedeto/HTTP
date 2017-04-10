@@ -90,12 +90,7 @@ class Request
 
     public static function createFromGlobals()
     {
-        return new Request(
-            $_GET,
-            $_POST,
-            $_COOKIE,
-            $_SERVER
-        );
+        return new Request($_GET, $_POST, $_COOKIE, $_SERVER);
     }
 
     /*** 
@@ -180,9 +175,6 @@ class Request
      */
     public function getSession()
     {
-        if ($this->session === null)
-            $this->startSession();
-
         return $this->session;
     }
 
