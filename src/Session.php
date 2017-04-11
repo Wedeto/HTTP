@@ -36,7 +36,7 @@ use Wedeto\Util\Functions as WF;
 use Wedeto\Util\ErrorInterceptor;
 use Wedeto\HTTP\Error as HTTPError;
 
-class Session extends Dictionary
+final class Session extends Dictionary
 {
     /** Session cache object used to persist sessions in CLI sessions */
     private $session_cache = null;
@@ -58,6 +58,9 @@ class Session extends Dictionary
 
     /** The ID of the session - mainly for tests */
     private $session_id = null;
+
+    /** If the session has been started */
+    private $active = false;
 
     /**
      * Create the session based on a VirtualHost and a configuration
@@ -120,9 +123,13 @@ class Session extends Dictionary
 
     /**
      * Actually start the session
+     * @return Session Provide fluent interface
      */
     public function start()
     {
+        if ($this->active)
+            return $this;
+
         if (PHP_SAPI === "cli")
         {
             $this->startCLISession();
@@ -136,6 +143,8 @@ class Session extends Dictionary
 
         if (!$this->has('session_mgmt', 'start_time'))
             $this->set('session_mgmt', 'start_time', time());
+
+        return $this;
     }
 
     /**
@@ -143,7 +152,6 @@ class Session extends Dictionary
      */
     public function startCLISession()
     {
-        if (PHP_SAPI === "CLI" && (!defined('WEDETO_TEST') || WEDETO_TEST === 0)) return;
         $this->session_cache = new Cache('cli-session');
         $ref = &$this->session_cache->get();
 
@@ -152,11 +160,13 @@ class Session extends Dictionary
         // Make sure the session variables are available through this object
         $this->values = &$ref;
         $this->set('CLI', true);
+        $this->active = true;
+        return $this;
     }
 
     /**
      * Change the session ID, useful for tests. Disallowed in normal operation.
-     *
+     * @return Session Provide fluent interface
      * @codeCoverageIgnore
      */
     public function setSessionID(string $session_id)
@@ -165,6 +175,7 @@ class Session extends Dictionary
             throw new \RuntimeException("Cannot change the session ID");
 
         $this->session_id = $session_id;
+        return $this;
     }
 
     /**
@@ -185,14 +196,18 @@ class Session extends Dictionary
 
     /** 
      * Set up a HTTP session using cookies and the PHP session machinery
+     * @return Session Provides fluent interface
      */
     public function startHTTPSession()
     {
+        // @codeCoverageIgnoreStart
+        // Safety measure - can't test this without replacing PHP
         if (session_status() === PHP_SESSION_DISABLED)
-            throw new HTTPError(500, "Sesssions are disabled");
+            throw new \RuntimeException("Sesssions are disabled");
+        // @codeCoverageIgnoreEnd
 
         if (session_status() === PHP_SESSION_ACTIVE)
-            throw new HTTPError(500, "Repeated session initialization");
+            throw new \LogicException("Repeated session initialization");
 
         // Now do the PHP session magic to initialize the $_SESSION array
         session_set_cookie_params(
@@ -211,7 +226,7 @@ class Session extends Dictionary
             session_id($this->session_id);
         }
             
-        $this->sessionStart();
+        session_start();
 
         if ($custom_session_id)
             ini_set('session.use_strict_mode', 1);
@@ -231,6 +246,11 @@ class Session extends Dictionary
         // As the session_id is available after the session started, we need to
         // update the cookie that was generated in the constructor.
         $this->session_cookie->setValue(session_id());
+
+        // Session has been started
+        $this->active = true;
+
+        return $this;
     }
 
     /**
@@ -261,7 +281,10 @@ class Session extends Dictionary
             {
                 // The session exists, but it was expired more than 1 minute ago,
                 // so its ready to be deleted.
+                // @codeCoverageIgnoreStart
+                // Testing this would increase the test duration by 1 minute.
                 $expired = true;
+                // @codeCoverageIgnoreEnd
             }
             elseif ($ua === $this->server_vars['HTTP_USER_AGENT'] && $ip === $this->server_vars['REMOTE_ADDR'])
             {
@@ -273,7 +296,7 @@ class Session extends Dictionary
                     session_commit(); 
                     ini_set('session.use_strict_mode', 0);
                     session_id($new_session);
-                    $this->sessionStart();
+                    session_start();
                     ini_set('session.use_strict_mode', 1);
                     $this->session_id = session_id();
                 }
@@ -320,7 +343,7 @@ class Session extends Dictionary
     /** 
      * Should be called when the session ID should be changed, for example
      * after logging in or out.
-     * @return Wedeto\HTTP\Session Provides fluent interface
+     * @return Session Provides fluent interface
      */
     public function resetID()
     {
@@ -338,14 +361,14 @@ class Session extends Dictionary
             ini_set('session.use_strict_mode', 0);
             session_id($new_session_id);
 
-            $this->sessionStart();
+            session_start();
             ini_set('session.use_strict_mode', 1);
             $this->session_id = session_id();
             $this->values = &$_SESSION;
             $this->session_cookie->setValue($new_session_id);
-            
-            if ($this->has('session_mgmt', 'destroyed'))
-                $this->set('session_mgmt', 'destroyed', null);
+
+            // Force destroyed to be empty 
+            $this->set('session_mgmt', 'destroyed', null);
 
             if ($auth)
                 $this['authentication'] = $auth;
@@ -353,26 +376,6 @@ class Session extends Dictionary
             // Store the start time of the new session
             $this->set('session_mgmt', 'start_time', time());
         }
-    }
-
-    /** 
-     * Wrap the session_start so that we can catch ErrorExceptions that occur
-     * when the headers have been sent. This happens mostly on CLI during tests,
-     * If in the web, it's a real error.
-     *
-     * @codeCoverageIgnore
-     */
-    private function sessionStart()
-    {
-        $interceptor = new ErrorInterceptor('session_start');
-        $interceptor->registerError(E_WARNING, 'Cannot send session');
-        $interceptor->registerError(E_WARNING, 'Cannot send session');
-
-        $interceptor->execute();
-
-        $errors = $interceptor->getInterceptedErrors();
-        foreach ($errors as $error)
-            \Wedeto\Log\notice("Wedeto.Util.Session", "Error sending session cookie: {exception}", ['exception' => $error]);
     }
 
     /**
@@ -390,14 +393,33 @@ class Session extends Dictionary
         return $prefix . bin2hex(random_bytes(16));
     }
 
+    /** 
+     * @return bool If the session is active or not
+     */
+    public function active()
+    {
+        return $this->active;
+    }
+
+    /**
+     * Close the current session
+     * @return Session Provides fluent interface
+     */
     public function close()
     {
-        if (session_status() === PHP_SESSION_ACTIVE)
+        if ($this->active)
         {
-            session_commit();
-            $this->values = array();
-            $this->session_id = null;
+            if (session_status() === PHP_SESSION_ACTIVE)
+            {
+                session_commit();
+                $this->values = array();
+                $this->session_id = null;
+            }
+            elseif ($this->session_cache !== null)
+                Cache::saveCache();
+            $this->active = false;
         }
+
         return $this;
     }
 
@@ -407,9 +429,13 @@ class Session extends Dictionary
      */
     public function destroy()
     {
-        $this->clear();
-        if (session_status() === PHP_SESSION_ACTIVE)
-            session_commit();
+        if ($this->active)
+        {
+            $this->clear();
+            if (session_status() === PHP_SESSION_ACTIVE)
+                session_commit();
+            $this->active = false;
+        }
         return $this;
     }
 

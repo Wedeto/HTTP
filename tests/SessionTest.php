@@ -53,6 +53,10 @@ final class SessionTest extends TestCase
 
     public function setUp()
     {
+        // Make sure there is no active session
+        if (session_status() === PHP_SESSION_ACTIVE)
+            session_commit();
+
         $this->url = new URL('http://www.foobar.com');
         $this->config = new Dictionary();
         $this->server_vars = new Dictionary();
@@ -89,6 +93,10 @@ final class SessionTest extends TestCase
         $this->assertTrue(Date::isFuture($expires));
         $this->assertEquals('www.foobar.com', $cookie->getDomain());
         $this->assertEquals(true, $cookie->getHTTPOnly());
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage("Repeated session initialization");
+        $a->startHTTPSession();
     }
 
     /**
@@ -322,5 +330,21 @@ final class SessionTest extends TestCase
         $this->assertNotEquals($new_session_id, $a->getSessionID());
         $this->assertFalse(isset($_SESSION['authentication']));
         $a->close();
+    }
+
+    public function testStartSession()
+    {
+        $session = new Session($this->url, $this->config, $this->server_vars);
+
+        $this->assertFalse($session->active());
+
+        $this->assertEquals($session, $session->start());
+        $this->assertTrue($session->active());
+
+        $this->assertEquals($session, $session->start());
+        $this->assertTrue($session->active());
+
+        $this->assertEquals($session, $session->close());
+        $this->assertFalse($session->active());
     }
 }
