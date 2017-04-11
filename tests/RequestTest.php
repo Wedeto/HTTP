@@ -99,60 +99,11 @@ final class RequestTest extends TestCase
     }
 
     /**
-     * @covers Wedeto\HTTP\Request::parseAccept
-     */
-    public function testAcceptParser()
-    {
-        unset($this->server['HTTP_ACCEPT']);
-        $req = new Request($this->get, $this->post, $this->cookie, $this->server);
-        $this->assertEquals($req->accept, array('text/html' => 1.0));
-
-        $accept = Request::parseAccept("garbage");
-        $this->assertEquals($accept, array("garbage" => 1.0));
-    }
-
-    /**
      * @covers Wedeto\HTTP\Request::cli
      */
     public function testCLI()
     {
         $this->assertTrue(Request::cli());
-    }
-
-    /**
-     * @covers Wedeto\HTTP\Request::isAccepted
-     * @covers Wedeto\HTTP\Request::getBestResponseType
-     */
-    public function testAccept()
-    {
-        $request = new Request($this->get, $this->post, $this->cookie, $this->server);
-        $request->accept = array(); 
-        $this->assertTrue($request->isAccepted("text/html") == true);
-        $this->assertTrue($request->isAccepted("foo/bar") == true);
-
-        $request->accept = array(
-            'text/html' => 0.9,
-            'text/plain' => 0.8,
-            'application/*' => 0.7
-        );
-
-        $this->assertTrue($request->isAccepted("text/html") == true);
-        $this->assertTrue($request->isAccepted("text/plain") == true);
-        $this->assertTrue($request->isAccepted("application/bar") == true);
-        $this->assertFalse($request->isAccepted("foo/bar") == true);
-
-        $resp = $request->getBestResponseType(array('foo/bar', 'application/bar/', 'text/plain', 'text/html'));
-        $this->assertEquals($resp, "text/html");
-
-        $resp = $request->getBestResponseType(array('application/bar', 'application/foo'));
-        $this->assertEquals($resp, "application/bar");
-
-        $resp = $request->getBestResponseType(array('application/foo', 'application/bar'));
-        $this->assertEquals($resp, "application/foo");
-
-        $request->accept = array();
-        $resp = $request->getBestResponseType(array('foo/bar', 'application/bar/', 'text/plain', 'text/html'));
-        $this->assertEquals($resp, "text/plain");
     }
 
     public function testGetStartTime()
@@ -187,30 +138,6 @@ final class RequestTest extends TestCase
         $req->startSession($this->url, $this->config);
         $this->assertEquals($sess_object, $req->session);
 
-    }
-
-    public function testWants()
-    {
-        $req = new Request($this->get, $this->post, $this->cookie, $this->server);
-
-        $req->accept = Request::parseAccept('text/html;q=1,text/plain;q=0.9');
-        $this->assertFalse($req->wantJSON());
-        $this->assertTrue($req->wantHTML() !== false);
-        $this->assertTrue($req->wantText() !== false);
-        $this->assertFalse($req->wantXML());
-
-        $req->accept = Request::parseAccept('application/json;q=1,application/*;q=0.9');
-        $this->assertTrue($req->wantJSON() !== false);
-        $this->assertFalse($req->wantHTML());
-        $this->assertFalse($req->wantText());
-        $this->assertTrue($req->wantXML() !== false);
-
-        $req->accept = Request::parseAccept('application/json;q=1,text/html;q=0.9,text/plain;q=0.8');
-        $type = $req->chooseResponse(array('application/json', 'text/html'));
-        $this->assertEquals('application/json', $type);
-
-        $type = $req->chooseResponse(array('text/plain', 'text/html'));
-        $this->assertEquals('text/html', $type);
     }
 
     public function testCreateFromGlobals()
@@ -262,5 +189,38 @@ final class RequestTest extends TestCase
             if ($sess instanceof Session)
                 $sess->destroy();
         }
+    }
+
+    public function testSetAccept()
+    {
+        $req = Request::createFromGlobals();
+
+        $this->assertInstanceOf(Accept::class, $req->accept);
+        $this->assertTrue($req->accepts('application/json') == true);
+        $this->assertTrue($req->accepts('text/html') == true);
+
+        $ac = new Accept('text/html');
+        $this->assertEquals($req, $req->setAccept($ac));
+        $this->assertEquals($ac, $req->accept);
+
+        $this->assertFalse($req->accepts('application/json') == true);
+        $this->assertTrue($req->accepts('text/html') == true);
+
+        $ac2 = new Accept('application/json');
+        $this->assertEquals($req, $req->setAccept($ac2));
+        $this->assertEquals($ac2, $req->accept);
+        $this->assertNotEquals($ac, $req->accept);
+
+        $this->assertTrue($req->accepts('application/json') == true);
+        $this->assertFalse($req->accepts('text/html') == true);
+    }
+
+    public function testGetInvalidProperty()
+    {
+        $req = Request::createFromGlobals();
+        
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage("Property does not exist: foo");
+        $foo = $req->foo;
     }
 }

@@ -47,46 +47,46 @@ class Request
     protected $start_time;
 
     /** The request method used for the current request: GET, POST etc */
-    public $method;
+    protected $method;
     
     /** The full request URL */
-    public $url;
+    protected $url;
 
     /** The URL from the webroot */
-    public $webroot;
+    protected $webroot;
 
     /** The server variables */
-    public $server;
+    protected $server;
 
     /** Whether the request was made using XMLHTTPRequest */
-    public $ajax;
+    protected $ajax;
 
     /** The GET parameters specified as query in the URL */
-    public $get;
+    protected $get;
     
     /** The arguments POST-ed to the script */
-    public $post;
+    protected $post;
 
     /** The storage for cookies sent by the client */
-    public $cookie;
+    protected $cookie;
     
     /** Accepted response types indicated by client */
-	public $accept = array();
+	protected $accept;
 
     /** Session storage */
-    public $session;
+    protected $session;
 
     /** The IP address of the client */
-    public $remote_ip;
+    protected $remote_ip;
 
     /** The hostname of the client */
-    public $remote_host;
+    protected $remote_host;
 
     /** The language the response should use */
-    public $language;
+    protected $language;
 
     /** The path to the document root / the script containing the entry point */
-    public $docroot;
+    protected $docroot;
 
     public static function createFromGlobals()
     {
@@ -125,7 +125,7 @@ class Request
 
         $this->remote_ip = $this->server->get('REMOTE_ADDR');
         $this->remote_host = !empty($this->remote_ip) ? gethostbyaddr($this->remote_ip) : null;
-        $this->accept = self::parseAccept($this->server->dget('HTTP_ACCEPT', ''));
+        $this->accept = new Accept($this->server->dget('HTTP_ACCEPT', ''));
     }
 
     /**
@@ -169,6 +169,17 @@ class Request
         }
         return $this;
     }
+        
+    /**
+     * Set the Accept instance to modify the accepted response types
+     * @param Accept $accept The accept instance
+     * @return Request Provides fluent interface
+     */
+    public function setAccept(Accept $accept)
+    {
+        $this->accept = $accept;
+        return $this;
+    }
 
     /** 
      * Get the HTTP session
@@ -179,172 +190,30 @@ class Request
     }
 
     /**
-     * Check if the mime-type is accepted by the configured list
-     * @param string $mime The mime type to match against the list of accepted
-     * mime types
-     * @return boolean True if the type is accepted, false if it is not
-     */
-    public function isAccepted($mime)
-    {
-        if (empty($this->accept))
-            return true;
-
-        foreach ($this->accept as $type => $priority)
-        {
-            if (strpos($type, "*") !== false)
-            {
-                $regexp = "/" . str_replace("WC", ".*", preg_quote(str_replace("*", "WC", $type), "/")) . "/i";
-                if (preg_match($regexp, $mime))
-                    return $priority;
-            }
-            elseif (strtolower($mime) === strtolower($type))
-                return $priority;
-        }
-        return false;
-    }
-
-    /**
-     * Check if a specified response type is accepted by the client, and if so,
-     * sets it as the preferred response type. It is therefore assumed that if
-     * you call this function and it returns true, you are going to output
-     * that response type.
-     *
-     * @param string $mime The mime-type of the response that is to be checked
-     * @param string $charset The character set / encoding use for output
-     * @return boolean Whether the request accepts the mime-type as response
-     */
-    public function want($mime, $charset = null)
-    {
-        $priority = $this->isAccepted($mime);
-        if ($priority === false)
-            return false;
-        if (!empty($charset))
-            $mime .= "; charset=" . $charset;
-
-        $this->mime = $mime;
-        return $priority;
-    }
-
-    /**
-     * Select the best response type to return from a list of available types.
-     * @param array $types The types that the script is willing to return
-     * @return string The mime type preferred by the client
+     * Check for accepted type. Forwards to Accept instance
      * 
-     * @return string The mime-type of the preferred response type. Null if
-     *                none of them are accepted
+     * @param string $mime The mime type to check
+     * @return bool True if the mime type is accepted by the client, false
+     * otherwise
      */
-    public function getBestResponseType(array $types)
+    public function accepts(string $mime)
     {
-        $best_priority = null;
-        $best_type = null;
-
-        // Auto-fill mime-types when running from CLI.
-        if (self::cli() && empty($this->accept))
-            $this->accept = array('text/plain' => 1.0);
-
-        foreach ($types as $type)
-        {
-            $priority = $this->isAccepted($type);
-            if ($priority === false)
-                continue;
-
-            if ($best_priority === null || $priority > $best_priority)
-            {
-                $best_priority = $priority;
-                $best_type = $type;
-            }
-        }
-
-        return $best_type;
+        return $this->accept->accepts($mime);
     }
-
+    
     /**
-     * Parse the HTTP Accept headers into an array of Type => Priority pairs.
+     * Get a variable of the request. Magic method
+     * to allow read-only access to properties.
      *
-     * @param string $accept The accept header to parse
-     * @return The parsed accept list
+     * @param string $var The property to get
+     * @throws BadMethodCallException When an invalid property is requested
      */
-    public static function parseAccept(string $accept)
+    public function __get(string $var)
     {
-        if (empty($accept))
-            $accept = "text/html";
-
-		$accept = explode(",", $accept);
-        $accepted = array();
-		foreach ($accept as $type)
-		{
-			if (preg_match("/^([^;]+);q=([\d.]+)$/", $type, $matches))
-			{
-				$type = $matches[1];
-				$prio = (float)$matches[2];
-			}
-			else
-				$prio = 1.0;
-
-			$accepted[$type] = $prio;
-		}
-
-        return $accepted;
+        if (!property_exists($this, $var))
+            throw new \BadMethodCallException("Property does not exist: " . $var);
+        return $this->$var;
     }
-
-    /**
-     * @return boolean Whether the request accepts JSON as response
-     * @see Wedeto\Platform\Template::want
-     */
-    public function wantJSON()
-    {
-        return $this->want('application/json', 'utf-8');
-    }
-
-    /**
-     * @return boolean Whether the request accepts HTML as response
-     * @see Wedeto\Platform\Template::want
-     */
-    public function wantHTML()
-    {
-        return $this->want('text/html', 'utf-8');
-    }
-
-    /**
-     * @return boolean Whether the request accepts HTML as response
-     * @see Wedeto\Platform\Template::want
-     */
-    public function wantText()
-    {
-        return $this->want('text/plain', 'utf-8');
-    }
-
-    /**
-     * @return boolean Whether the request accepts XML as response
-     * @see Wedeto\Platform\Template::want
-     */
-    public function wantXML()
-    {
-        return $this->want('application/xml');
-    }
-
-    /**
-     * Select the preferred reponse type based on a list of response types.
-     * The response types should be provided in preference of the script, if any.
-     * These are then matched with the accepted response types by the client,
-     * and the most preferred one is selected. If more than one type is equally
-     * desired by the client, the first one is selected.
-     *
-     * @param array $types The list of response types offered
-     * @return string The preferred response type
-     * @see Wedeto\HTTP\Request::want
-     */
-    public function chooseResponse(array $types)
-    {
-        $best = $this->getBestResponseType($types);
-
-        // Set the mime-type to the best selected output
-        $charset = (substr($best, 0, 5) == "text/") ? "utf-8" : null;
-        $this->want($best, $charset);
-
-        return $best;
-    }
-
 
     /**
      * @return boolean True when the script is run from CLI, false if run from webserver

@@ -27,6 +27,8 @@ namespace Wedeto\HTTP\Response;
 
 use PHPUnit\Framework\TestCase;
 use Wedeto\Util\Dictionary;
+use Wedeto\FileFormats\AbstractWriter;
+use Wedeto\FileFormats\WriterFactory;
 
 /**
  * @covers Wedeto\HTTP\Response\DataResponse
@@ -59,6 +61,12 @@ final class DataResponseTest extends TestCase
         $this->assertContains('application/xml', $actual);
     }
 
+    public function testPrettyPrinting()
+    {
+        $a = new DataResponse(array(1, 2, 3));
+        $this->assertEquals($a, $a->setPrettyPrint(true));
+    }
+
     public function testOutput()
     {
         $a = new DataResponse(array(1, 2, 3));
@@ -84,5 +92,63 @@ final class DataResponseTest extends TestCase
 
         $expected = "[1, 2, 3]";
         $this->assertEquals($expected, $actual);
+    }
+
+    public function testSetFileFormats()
+    {
+        $a = new DataResponse(['foo' => 'bar']);
+
+        $mock = $this->getMockForAbstractClass(AbstractWriter::class);
+
+        $writers = WriterFactory::getAvailableWriters();
+        $this->assertGreaterThan(0, count($writers));
+
+        $keys = array_keys($writers);
+        $this->assertEquals($keys, $a->getMimeTypes());
+
+        $this->assertEquals($a, $a->addFileFormat('application/foo', $mock));
+        $keys[] = 'application/foo';
+        $this->assertEquals($keys, $a->getMimeTypes());
+
+        $this->assertEquals($a, $a->addFileFormat('application/foo3', TestDataResponseFooWriter::class));
+        $keys[] = 'application/foo3';
+        $this->assertEquals($keys, $a->getMimeTypes());
+
+        $this->assertEquals($a, $a->removeFileFormat('application/foo3'));
+        array_pop($keys);
+        $this->assertEquals($keys, $a->getMimeTypes());
+
+        $thrown = false;
+        try
+        {
+            $a->addFileFormat('application/foo2', 'foo');
+        }
+        catch (\InvalidArgumentException $e)
+        {
+            $this->assertContains("Class foo does not exist or does not implement", $e->getMessage());
+            $thrown = true;
+        }
+        $this->assertTrue($thrown, "Exception was not thrown");
+
+        $thrown = false;
+        try
+        {
+            $a->addFileFormat('application/foo2', null);
+        }
+        catch (\InvalidArgumentException $e)
+        {
+            $this->assertContains("Invalid writer specified: NULL", $e->getMessage());
+            $thrown = true;
+        }
+        $this->assertTrue($thrown, "Exception was not thrown");
+
+    }
+}
+
+class TestDataResponseFooWriter extends \Wedeto\FileFormats\AbstractWriter
+{
+    public function format($data, $file_handle)
+    {
+        fwrite($file_handle, "FOO");
     }
 }

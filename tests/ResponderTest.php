@@ -195,7 +195,7 @@ final class ResponderTest extends TestCase
 
     public function testRespond()
     {
-        $this->request->accept = array('application/json' => 1);
+        $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
 
         $thr = new \InvalidArgumentException('foobar');
@@ -218,7 +218,7 @@ final class ResponderTest extends TestCase
 
     public function testRespondNoResponse()
     {
-        $this->request->accept = array('text/plain' => 1);
+        $this->request->setAccept(new Accept('text/plain'));
         $this->responder = new MockResponder($this->request);
 
         // Avoid responder closing PHPUnits ob_buffer
@@ -239,7 +239,7 @@ final class ResponderTest extends TestCase
 
     public function testRespondUnacceptableResponse()
     {
-        $this->request->accept = array('application/javascript' => 1);
+        $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
 
         // Avoid responder closing PHPUnits ob_buffer
@@ -260,7 +260,7 @@ final class ResponderTest extends TestCase
 
     public function testRespondEmptyResponse()
     {
-        $this->request->accept = array('application/json' => 1);
+        $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
         $resp = new MockResponseResponse(array(), new RuntimeException('foo'));
         $this->responder->setResponse($resp);
@@ -279,7 +279,7 @@ final class ResponderTest extends TestCase
 
     public function testTransformResponseFails()
     {
-        $this->request->accept = array('application/json' => 1);
+        $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
         $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
         $resp->fail_transform = true;
@@ -299,7 +299,7 @@ final class ResponderTest extends TestCase
 
     public function testResponseSetCustomHeaders()
     {
-        $this->request->accept = array('application/json' => 1);
+        $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
         $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
         $this->responder->setResponse($resp);

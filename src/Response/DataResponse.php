@@ -91,12 +91,26 @@ class DataResponse extends Response
      * @param string $writer_class The writer class. Should subclass AbstractWriter
      * @return Wedeto\HTTP\DataResponse Provides fluent interface
      */
-    public function addFileFormat(string $mime_type, string $writer_class)
+    public function addFileFormat(string $mime_type, $writer_class)
     {
-        if (!class_exists($writer_class) || !($writer_class instanceof AbstractWriter))
+        if (is_string($writer_class))
+        {
+            if (!class_exists($writer_class) || !(is_subclass_of($writer_class, AbstractWriter::class, $writer_class)))
+            {
+                throw new InvalidArgumentException(
+                    "Class {$writer_class} does not exist or does not implement " . AbstractWriter::class
+                );
+            }
+            $this->file_formats[$mime_type] = $writer_class;    
+        }
+        elseif ($writer_class instanceof AbstractWriter)
+        {
+            $this->file_formats[$mime_type] = $writer_class;    
+        }
+        else
         {
             throw new InvalidArgumentException(
-                "Class {$writer_class} does not exist or does not implement " . AbstractWriter::class
+                "Invalid writer specified: " . WF::str($writer_class)
             );
         }
 
@@ -133,7 +147,7 @@ class DataResponse extends Response
     }
 
     /** 
-     * Set the pretty printingin option on the writer
+     * Set the pretty printing option on the writer
      * @param bool $pprint True to enable pretty printing, false to disable it
      * @return Wedeto\HTTP\DataResponse Provides fluent interface
      */
@@ -155,15 +169,17 @@ class DataResponse extends Response
         $output = "";
         try 
         {
-            if (class_exists($classname))
-            {
+            if ($classname instanceof AbstractWriter)
+                $writer = $classname;
+            elseif (class_exists($classname))
                 $writer = new $classname($pprint);
-                $op = fopen("php://output", "w");
-                $writer->write($this->data, $op);
-                fclose($op);
-            }
             else
                 throw new InvalidArgumentException("Response writer $classname does not exist");
+
+            $writer->setPrettyPrint($pprint);
+            $op = fopen("php://output", "w");
+            $writer->write($this->data, $op);
+            fclose($op);
         }
         catch (Throwable $e)
         {

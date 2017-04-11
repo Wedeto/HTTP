@@ -278,7 +278,7 @@ class Responder
             $mime = null;
             foreach ($types as $type)
             {
-                if ($this->request->isAccepted($type))
+                if ($this->request->accepts($type))
                 {
                     $mime = $type;
                     break;
@@ -287,7 +287,7 @@ class Responder
         }
 
         // If mime is not accepted, return a 406 response
-        if (empty($mime) || !$this->request->isAccepted($mime))
+        if (empty($mime) || !$this->request->accepts($mime))
         {
             $mime = 'text/html';
             $this->response = new Error(406, "Not Acceptable", 'No acceptable response can be offered');
