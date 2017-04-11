@@ -28,6 +28,7 @@ namespace Wedeto\HTTP\Response;
 use PHPUnit\Framework\TestCase;
 
 use Wedeto\HTTP\Request;
+use Wedeto\HTTP\CachePolicy;
 
 /**
  * @covers Wedeto\HTTP\Response\Response
@@ -62,6 +63,16 @@ final class ResponseTest extends TestCase
     {
         $a = new MockResponse();
         $this->assertEmpty($a->getHeaders());
+    }
+
+    public function testGetSetCachePolicy()
+    {
+        $cp = new CachePolicy;
+        $a = new MockResponse();
+
+        $this->assertNull($a->getCachePolicy());
+        $this->assertEquals($a, $a->setCachePolicy($cp));
+        $this->assertEquals($cp, $a->getCachePolicy());
     }
 }
 

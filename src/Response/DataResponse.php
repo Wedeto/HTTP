@@ -154,6 +154,7 @@ class DataResponse extends Response
     public function setPrettyPrint(bool $pprint)
     {
         $this->pretty_printing = $pprint;
+        return $this;
     }
 
     /**

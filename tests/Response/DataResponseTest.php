@@ -94,6 +94,20 @@ final class DataResponseTest extends TestCase
         $this->assertEquals($expected, $actual);
     }
 
+    public function testCustomOutputWriter()
+    {
+        $a = new DataResponse(array(1, 2, 3));
+        $a->addFileFormat('application/foobar', new TestDataResponseFooWriter);
+
+        ob_start();
+        $a->output('application/foobar');
+        $actual = ob_get_contents();
+        ob_end_clean();
+
+        $expected = "FOO";
+        $this->assertEquals($expected, $actual);
+    }
+
     public function testSetFileFormats()
     {
         $a = new DataResponse(['foo' => 'bar']);
@@ -142,6 +156,9 @@ final class DataResponseTest extends TestCase
         }
         $this->assertTrue($thrown, "Exception was not thrown");
 
+        $a->setFileFormats($writers);
+        $keys = array_keys($writers);
+        $this->assertEquals($keys, $a->getMimeTypes());
     }
 }
 
