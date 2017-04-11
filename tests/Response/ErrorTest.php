@@ -64,4 +64,25 @@ final class ErrorTest extends TestCase
         $expected_start = "Wedeto\HTTP\Response\Error: Internal Server Error";
         $this->assertEquals(0, strpos($expected_start, $actual));
     }
+
+    public function testSetResponse()
+    {
+        $a = new Error(400, "Error");
+        $str = new StringResponse("Foobarred!", "text/html");
+
+        $a->setResponse($str);
+
+        ob_start();
+        $a->output('text/html');
+        $actual = ob_get_contents();
+        ob_end_clean();
+
+        $expected = "Foobarred!";
+        $this->assertContains($expected, $actual);
+
+        $err = new Error(500, "Error2");
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Cannot chain error response");
+        $a->setResponse($err);
+    }
 }

@@ -42,6 +42,10 @@ final class RedirectRequestTest extends TestCase
         $this->assertEquals(302, $a->getStatusCode());
         $this->assertEquals($expected, $a->getURL());
 
+        $expected = new URL('http://foo2.bar');
+        $this->assertEquals($a, $a->setURL($expected));
+        $this->assertEquals($expected, $a->getURL());
+
         $headers = $a->getHeaders();
         $this->assertTrue(isset($headers['Location']));
         $this->assertFalse(isset($headers['Refresh']));

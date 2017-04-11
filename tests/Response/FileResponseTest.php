@@ -159,7 +159,9 @@ final class FileResponseTest extends TestCase
     public function testFileResponseXSendFile()
     {
         $a = new FileResponse($this->file, 'foobar.txt', false);
-        $a->setUseXSendFile(true);
+        $this->assertFalse($a->getUseXSendFile());
+        $this->assertEquals($a, $a->setUseXSendFile(true));
+        $this->assertTrue($a->getUseXSendFile());
         $this->assertEquals($this->file, $a->getFileName());
         $this->assertEquals('foobar.txt', $a->getOutputFileName());
 
