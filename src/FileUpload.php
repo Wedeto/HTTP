@@ -25,15 +25,33 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace Wedeto\HTTP;
 
-class Upload
-{
-    private $info;
-    private $filename;
-    private $location;
-    private $file;
-    private $copied = false;
+use Wedeto\IO\File;
+use Wedeto\Util\LoggerAwareStaticTrait;
+use Wedeto\Util\Hook;
 
-    private static $error_codes = array(
+class FileUpload
+{
+    use LoggerAwareStaticTrait;
+     
+    /** The name of the form element */
+    protected $name;
+
+    /** The uploaded file name */
+    protected $filename;
+
+    /** The location where the file is temporarily stored */
+    protected $location;
+    
+    /** The File object */
+    protected $file;
+
+    /** The size of the uploaded file */
+    protected $size;
+    
+    /** If the object has been copied */
+    protected $copied = false;
+
+    protected static $error_codes = array(
         UPLOAD_ERR_OK => "Upload successful",
         UPLOAD_ERR_INI_SIZE => "File exceeds upload_max_filesize directive",
         UPLOAD_ERR_FORM_SIZE => "File exceeds MAX_FILE_SIZE directive in form",
@@ -44,10 +62,19 @@ class Upload
         UPLOAD_ERR_EXTENSION => "Upload blocked by extension"
     );
 
-    public function __construct(array $info)
+    /**
+     * Construct the FileUpload object
+     *
+     * @param string $name The name of the form element that uploaded the file
+     * @param array $info The metadata for this upload as provided in the $_FILES superglobal
+     */
+    public function __construct(string $name, array $info)
     {
+        // Initialize the logger
+        self::getLogger();
+
         if ($info['error'] !== UPLOAD_ERR_OK)
-            throw new UploadException(self::$error_codes[$info['error']], $info['error']);
+            throw new FileUploadException(self::$error_codes[$info['error']], $info['error']);
 
         $this->info = $info;
         $name = $info['name'];
@@ -55,10 +82,18 @@ class Upload
         // Sanitize the filename
         $name = preg_replace("/[^a-zA-Z0-9_.]/", "_", $name);
         $f = new File($name);
+
+        // Lowercase the file extension
         $this->filename = $f->setExt($f->getExt());
 
+        // Store the temporary location
         $this->location = $info['tmp_name'];
+
+        // Create the file object of the target file
         $this->file = new File($this->filename, $this->info['type']);
+
+        // The uploaded file size
+        $this->size = $info['size'];
     }
 
     public function getFilename()
@@ -66,13 +101,18 @@ class Upload
         return $this->filename;
     }
 
-    public function moveTo($dir)
+    public function getFile()
+    {
+        return $this->file;
+    }
+
+    public function moveTo(string $dir)
     {
         if ($this->copied)
-            throw new UploadException("Upload has already been moved");
+            throw new FileUploadException("Upload has already been moved");
 
         if (!is_writable($dir))
-            throw new UploadException("Target directory is not writable");
+            throw new FileUploadException("Target directory is not writable");
 
         $year = date("Y");
         $month = date("m");
@@ -96,11 +136,12 @@ class Upload
             $rnd = (string)rand(0, 1000);
         }
 
-        \Wedeto\Log\info("Wedeto.Util.Upload", "Moving uploaded file {0} to {0}", [$this->location, $target_path]);
-        move_uploaded_file($this->location, $target_path);
-        chmod($target_path, 0664);
+        self::$logger->info("Moving uploaded file {0} to {1}", [$this->location, $target_path]);
+        rename($this->location, $target_path);
+        Hook::execute("Wedeto.IO.FileCreated", ['path' => $target_path]);
 
         $this->filename = $target_path;
+        $this->file = new File($target_path);
         $this->copied = true;
     }
 }

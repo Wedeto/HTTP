@@ -46,6 +46,9 @@ class Request
     /** The time at which the request was constructed */
     protected $start_time;
 
+    /** The HTTP version */
+    protected $http_version = "1.1";
+
     /** The request method used for the current request: GET, POST etc */
     protected $method;
     
@@ -76,6 +79,9 @@ class Request
     /** Session storage */
     protected $session;
 
+    /** Uploaded files */
+    protected $files;
+
     /** The IP address of the client */
     protected $remote_ip;
 
@@ -90,7 +96,7 @@ class Request
 
     public static function createFromGlobals()
     {
-        return new Request($_GET, $_POST, $_COOKIE, $_SERVER);
+        return new Request($_GET, $_POST, $_COOKIE, $_SERVER, $_FILES);
     }
 
     /*** 
@@ -105,7 +111,8 @@ class Request
         array &$get,
         array &$post,
         array &$cookie,
-        array &$server
+        array &$server,
+        array &$files
     )
     {
         self::getLogger();
@@ -115,6 +122,10 @@ class Request
         $this->server = Dictionary::wrap($server);
 
         $this->method = $this->server['REQUEST_METHOD'];
+        $proto = $this->server->dget('SERVER_PROTOCOL', 'HTTP/1.1');
+        if (preg_match('|HTTP/(\d+\.\d+)|', $proto, $matches))
+            $this->http_version = $proto[1];
+
         $this->start_time = Date::createFromFloat($this->server->dget('REQUEST_TIME_FLOAT', time()));
         $this->setUrlFromServerVars();
         $this->docroot = realpath($_SERVER['SCRIPT_FILENAME']);
@@ -126,6 +137,8 @@ class Request
         $this->remote_ip = $this->server->get('REMOTE_ADDR');
         $this->remote_host = !empty($this->remote_ip) ? gethostbyaddr($this->remote_ip) : null;
         $this->accept = new Accept($this->server->dget('HTTP_ACCEPT', ''));
+
+        $this->parseFiles($files);
     }
 
     /**
@@ -155,6 +168,24 @@ class Request
     {
         return $this->start_time;
     }
+        
+    /**
+     * Set the Accept instance to modify the accepted response types
+     * @param Accept $accept The accept instance
+     * @return Request Provides fluent interface
+     */
+    public function setAccept(Accept $accept)
+    {
+        $this->accept = $accept;
+        return $this;
+    }
+    
+    protected function parseFiles(array $files)
+    {
+        $this->files = [];
+        foreach ($files as $name => $info)
+            $this->files[] = new FileUpload($name, $info);
+    }
 
     /**
      * Start the HTTP Session, and initalize the session object
@@ -167,17 +198,6 @@ class Request
             $this->session = new Session($domain, $config, $this->server);
             $this->session->start();
         }
-        return $this;
-    }
-        
-    /**
-     * Set the Accept instance to modify the accepted response types
-     * @param Accept $accept The accept instance
-     * @return Request Provides fluent interface
-     */
-    public function setAccept(Accept $accept)
-    {
-        $this->accept = $accept;
         return $this;
     }
 

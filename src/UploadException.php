@@ -25,5 +25,5 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace Wedeto\HTTP;
 
-class UploadException extends \RuntimeException
+class FileUploadException extends \RuntimeException
 {}

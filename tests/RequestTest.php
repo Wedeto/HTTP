@@ -40,6 +40,7 @@ final class RequestTest extends TestCase
     private $post;
     private $server;
     private $cookie;
+    private $files;
     private $config;
 
     private $url;
@@ -70,6 +71,8 @@ final class RequestTest extends TestCase
             'session_id' => '1234'
         );
 
+        $this->files = [];
+
         $this->config = new Dictionary;
     }
 
@@ -78,7 +81,7 @@ final class RequestTest extends TestCase
      */
     public function testRequestVariables()
     {
-        $req = new Request($this->get, $this->post, $this->cookie, $this->server);
+        $req = new Request($this->get, $this->post, $this->cookie, $this->server, $this->files);
 
         $this->assertEquals($req->get->getAll(), $this->get);
         $this->assertEquals($req->post->getAll(), $this->post);
@@ -108,14 +111,14 @@ final class RequestTest extends TestCase
 
     public function testGetStartTime()
     {
-        $request = new Request($this->get, $this->post, $this->cookie, $this->server);
+        $request = new Request($this->get, $this->post, $this->cookie, $this->server, $this->files);
         $this->assertEquals($_SERVER['REQUEST_TIME_FLOAT'], Date::dateToFloat($request->getStartTime()));
     }
 
     public function testNoScheme()
     {
         unset($this->server['REQUEST_SCHEME']);
-        $req = new Request($this->get, $this->post, $this->cookie, $this->server);
+        $req = new Request($this->get, $this->post, $this->cookie, $this->server, $this->files);
         
         $expected = new URL('/foo');
         $this->assertEquals($expected, $req->url);
@@ -126,7 +129,7 @@ final class RequestTest extends TestCase
 
     public function testStartSession()
     {
-        $req = new Request($this->get, $this->post, $this->cookie, $this->server);
+        $req = new Request($this->get, $this->post, $this->cookie, $this->server, $this->files);
         $req->startSession($this->url, $this->config);
 
         $sess_object = $req->session;
