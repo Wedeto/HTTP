@@ -28,16 +28,23 @@ namespace Wedeto\HTTP;
 use Wedeto\IO\File;
 use Wedeto\Util\LoggerAwareStaticTrait;
 use Wedeto\Util\Hook;
+use Wedeto\Util\Dictionary;
 
 class FileUpload
 {
     use LoggerAwareStaticTrait;
      
+    /** The path to the form element - mainly useful in arrays */
+    protected $field_path;
+
     /** The name of the form element */
-    protected $name;
+    protected $field_name;
 
     /** The uploaded file name */
-    protected $filename;
+    protected $file_name;
+
+    /** The error code */
+    protected $error;
 
     /** The location where the file is temporarily stored */
     protected $location;
@@ -65,45 +72,89 @@ class FileUpload
     /**
      * Construct the FileUpload object
      *
-     * @param string $name The name of the form element that uploaded the file
-     * @param array $info The metadata for this upload as provided in the $_FILES superglobal
+     * @param array $field_path The path to the form element that uploaded the file. Simply ['field_name'] in the basic case.
+     * @param string $name The name of the file
+     * @param string $type The content type / mime type of the uploaded file
+     * @param string $tmp_name The temporary location of the file
+     * @param int $error The error code
+     * @param int $size The size in bytes
      */
-    public function __construct(string $name, array $info)
+    public function __construct(array $field_path, string $name, string $type, string $tmp_name, int $error, int $size)
     {
         // Initialize the logger
         self::getLogger();
 
-        if ($info['error'] !== UPLOAD_ERR_OK)
-            throw new FileUploadException(self::$error_codes[$info['error']], $info['error']);
+        if (!isset(self::$error_codes[$error]))
+            throw new FileUploadException("Invalid error code: " . $error, $error);
 
-        $this->info = $info;
-        $name = $info['name'];
+        $this->error = $error;
 
         // Sanitize the filename
         $name = preg_replace("/[^a-zA-Z0-9_.]/", "_", $name);
         $f = new File($name);
 
+        $this->field_path = $field_path;
+
+        $this->field_name = "";
+        foreach ($field_path as $el)
+        {
+            if (empty($this->field_name))
+                $this->field_name = $el;
+            else
+                $this->field_name .= '[' . $el . ']';
+        }
+
         // Lowercase the file extension
-        $this->filename = $f->setExt($f->getExt());
+        $this->file_name = $f->setExt($f->getExt());
 
         // Store the temporary location
-        $this->location = $info['tmp_name'];
+        $this->location = $tmp_name;
 
         // Create the file object of the target file
-        $this->file = new File($this->filename, $this->info['type']);
+        $this->file = new File($this->file_name, $type);
 
         // The uploaded file size
-        $this->size = $info['size'];
+        $this->size = $size;
     }
 
-    public function getFilename()
+    public function isSuccess()
     {
-        return $this->filename;
+        return $this->error === UPLOAD_ERR_OK;
+    }
+
+    public function getFieldName()
+    {
+        return $this->field_name;
+    }
+
+    public function getFieldPath()
+    {
+        return $this->field_path;
+    }
+
+    public function getFileName()
+    {
+        return $this->file_name;
+    }
+
+    public function getTempFile()
+    {
+        return $this->location;
     }
 
     public function getFile()
     {
         return $this->file;
+    }
+
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    public function getSize()
+    {
+        return $this->size;
     }
 
     public function moveTo(string $dir)
@@ -113,6 +164,11 @@ class FileUpload
 
         if (!is_writable($dir))
             throw new FileUploadException("Target directory is not writable");
+
+        $exists = file_exists($this->location);
+        $is_uploaded = is_uploaded_file($this->location) || (defined('WEDETO_TEST') && WEDETO_TEST === 1);
+        if (!$exists || !$is_uploaded)
+            throw new FileUploadException("Not an uploaded file");
 
         $year = date("Y");
         $month = date("m");
@@ -127,9 +183,9 @@ class FileUpload
         $dir .= "/" . $year . "/" . $month;
         while (true)
         {
-            $data = sha1($this->filename . time() . $rnd);
+            $data = sha1($this->file_name . time() . $rnd);
             $prefix = $day . "_" .substr($data, 0, 2);
-            $target_path = $dir . "/" . $prefix . "_" . $this->filename;
+            $target_path = $dir . "/" . $prefix . "_" . $this->file_name;
             if (!file_exists($target_path))
                 break;
 
@@ -140,8 +196,83 @@ class FileUpload
         rename($this->location, $target_path);
         Hook::execute("Wedeto.IO.FileCreated", ['path' => $target_path]);
 
-        $this->filename = $target_path;
+        $this->file_name = $target_path;
         $this->file = new File($target_path);
         $this->copied = true;
+    }
+
+    /**
+     * Parse an array with the structure as provided by the $_FILES super global.
+     * @param array $files An array containing keys of the root form elements
+     *                     used to upload files, each containing name, type,
+     *                     tmp_name, error and size members.
+     * @return Dictionary A list of uploaded files
+     */
+    public static function parseFileArray(array $files)
+    {
+        $dict = new Dictionary;
+        $req_keys = ['name', 'type', 'tmp_name', 'error', 'size'];
+
+        foreach ($files as $root_name => $file)
+        {
+            foreach ($req_keys as $rk)
+            {
+                if (!isset($file[$rk]))
+                    throw new FileUploadException("Invalid uploaded file structure - missing key: " . $rk);
+            }
+
+            self::traverse(
+                $file['name'], 
+                $file['type'],
+                $file['tmp_name'],
+                $file['error'],
+                $file['size'], 
+                $dict,
+                [$root_name]
+            ); 
+        }
+
+        return $dict;
+    }
+
+    /**
+     * Helper function to recursively traverse the uploaded files array.
+     * @param array|string $name The name
+     * @param array|string $type The content-type
+     * @param array|string $tmp_name The temporary file name
+     * @param array|int $size The file size
+     * @param Dictionary $dict The dictionary where to store the files
+     * @param array $path The path in the traversal
+     */
+    private static function traverse($name, $type, $tmp_name, $error, $size, Dictionary $dict, $path)
+    {
+        if (is_array($name))
+        {
+            $keys = array_keys($name);
+            foreach ($keys as $key)
+            {
+                $new_path = $path;
+                $new_path[] = $key;
+                if (
+                    !array_key_exists($key, $name) ||
+                    !array_key_exists($key, $type) ||
+                    !array_key_exists($key, $error) ||
+                    !array_key_exists($key, $tmp_name) ||
+                    !array_key_exists($key, $size)
+                )
+                {
+                    throw new FileUploadException("Missing information for file upload " . implode(".", $new_path));
+                }
+                self::traverse($name[$key], $type[$key], $tmp_name[$key], $error[$key], $size[$key], $dict, $new_path);
+            }
+        }
+        else
+        {
+
+            $file = new FileUpload($path, $name, $type, $tmp_name, $error, $size);
+            $path[] = $file;
+            $dict->set($path, null);
+            $dict->set('_files', $file->getFieldName(), $file);
+        }
     }
 }
