@@ -27,7 +27,7 @@ namespace Wedeto\HTTP;
 
 use Wedeto\Util\LoggerAwareStaticTrait;
 use Wedeto\Util\Hook;
-use Wedeto\IO\MimeTypes;
+use Wedeto\IO\FileType;
 
 use Wedeto\HTTP\Response\Response;
 use Wedeto\HTTP\Response\Error;
@@ -307,7 +307,8 @@ class Responder
             $mime_charset = $hook_params['mime'];
 
         $mime_charset = $mime;
-        if (MimeTypes::isPlainText($mime))
+        $tp = new FileType('', $mime);
+        if ($tp->isPlainText())
             $mime_charset .= '; charset=utf-8';
 
         // Set mime type

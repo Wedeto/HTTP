@@ -159,8 +159,6 @@ final class FileUploadTest extends TestCase
         $this->assertEquals('foobar', file_get_contents($final_path));
         $this->assertFalse(file_exists($f));
 
-        var_Dump($file);
-
         $this->expectException(FileUploadException::class);
         $this->expectExceptionMessage('Upload has already been moved');
         $file_object->moveTo($move_dir);

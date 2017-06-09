@@ -6,6 +6,7 @@
     "type": "library",
     "require": {
         "Wedeto/Util": "0.9.*",
+        "Wedeto/IO": "^0.9.4",
         "Wedeto/FileFormats": "0.9.*",
         "php": ">=7.0.0"
     },

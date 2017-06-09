@@ -127,7 +127,7 @@ class Request
             $this->http_version = $proto[1];
 
         $this->start_time = Date::createFromFloat($this->server->dget('REQUEST_TIME_FLOAT', time()));
-        $this->setUrlFromServerVars();
+        $this->setURLFromServerVars();
         $this->docroot = realpath($_SERVER['SCRIPT_FILENAME']);
 
         $this->ajax = 
@@ -146,7 +146,7 @@ class Request
      * based on the location of the index.php that is executing, which we
      * consider to be the webroot.
      */
-    protected function setUrlFromServerVars()
+    public function setURLFromServerVars()
     {
         if ($this->server->get('REQUEST_SCHEME'))
         {
