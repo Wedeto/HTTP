@@ -152,7 +152,7 @@ class Request
         {
             $base = $this->server['REQUEST_SCHEME'] . '://' . $this->server['SERVER_NAME'];
             $this->url = new URL($base . $this->server['REQUEST_URI']);
-            $this->webroot = new URL($base . dirname($this->server->get('SCRIPT_NAME')) . '/');
+            $this->webroot = new URL($base . rtrim(dirname($this->server->get('SCRIPT_NAME')), '/') . '/');
         }
         else
         {

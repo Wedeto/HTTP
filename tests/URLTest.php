@@ -405,4 +405,36 @@ final class URLTest extends TestCase
         $this->assertNull($url->get('suffix'));
     }
 
+    public function testQueryParser()
+    {
+        $url = new URL('https://example.com/foo?bar=5');
+
+        $this->assertEquals('5', $url->getQueryVariable('bar'));
+        $this->assertEquals(null, $url->getQueryVariable('foo'));
+
+        $this->assertSame($url, $url->setQueryVariable('foo', 'baz'));
+        $this->assertEquals('baz', $url->getQueryVariable('foo'));
+
+        $this->assertSame($url, $url->set('query', '?a=1&b=2&amp;3=4'));
+        $this->assertEquals('1', $url->getQueryVariable('a'));
+        $this->assertEquals('2', $url->getQueryVariable('b'));
+        $this->assertEquals('4', $url->getQueryVariable('3'));
+
+        $this->assertEquals('https://example.com/foo?a=1&b=2&3=4', $url->toString());
+
+        $this->assertSame($url, $url->setQueryVariable('foobar', ''));
+        $this->assertEquals('https://example.com/foo?a=1&b=2&3=4', $url->toString());
+
+        $this->assertSame($url, $url->set('query', ['a' => 3, 'b' => 4]));
+        $this->assertEquals('3', $url->getQueryVariable('a'));
+        $this->assertEquals('4', $url->getQueryVariable('b'));
+        $this->assertEquals('https://example.com/foo?a=3&b=4', $url->toString());
+
+        $this->assertSame($url, $url->set('query', '?a&b&c'));
+        $this->assertEquals('https://example.com/foo?a=1&b=1&c=1', $url->toString());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Query must be associative array or string');
+        $url->set('query', new \DateTime);
+    }
 }
