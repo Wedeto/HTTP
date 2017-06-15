@@ -430,6 +430,11 @@ final class URLTest extends TestCase
         $this->assertEquals('4', $url->getQueryVariable('b'));
         $this->assertEquals('https://example.com/foo?a=3&b=4', $url->toString());
 
+        $this->assertSame($url, $url->set('query', ['a' => 3, 'b' => '']));
+        $this->assertEquals('3', $url->getQueryVariable('a'));
+        $this->assertEquals(null, $url->getQueryVariable('b'));
+        $this->assertEquals('https://example.com/foo?a=3', $url->toString());
+
         $this->assertSame($url, $url->set('query', '?a&b&c'));
         $this->assertEquals('https://example.com/foo?a=1&b=1&c=1', $url->toString());
 

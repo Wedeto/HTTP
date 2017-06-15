@@ -164,8 +164,6 @@ class URL implements \ArrayAccess
             $this->fragment = !empty($matches[5]) ? $matches[5] : null;
         }
 
-        if ($path === '')
-            $path = '/';
         $this->path = $path;
         return $this;
     }
@@ -209,11 +207,14 @@ class URL implements \ArrayAccess
         }
 
         $o .= $this->path;
-        if (!empty($this->query))
-            $o .= '?' . $this->getQuery();
+        $query = $this->getQuery();
+
+        if (!empty($query))
+            $o .= '?' . $query;
 
         if (!empty($this->fragment))
             $o .= '#' . $this->fragment;
+
         return $o;
     }
 
@@ -390,7 +391,10 @@ class URL implements \ArrayAccess
      */
     public function setQueryVariable(string $key, string $value)
     {
-        $this->query[$key] = $value;
+        if (empty($value))
+            unset($this->query[$key]);
+        else
+            $this->query[$key] = $value;
         return $this;
     }
 
