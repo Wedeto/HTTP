@@ -5,9 +5,9 @@
     "homepage": "https://wedeto.net",
     "type": "library",
     "require": {
-        "Wedeto/Util": "0.9.*",
-        "Wedeto/IO": "^0.9.4",
-        "Wedeto/FileFormats": "0.9.*",
+        "Wedeto/Util": ">=0.9.0",
+        "Wedeto/IO": ">=0.9.4",
+        "Wedeto/FileFormats": ">=0.9.0",
         "php": ">=7.0.0"
     },
     "require-dev": {
@@ -20,6 +20,9 @@
         "psr-4": {
             "Wedeto\\HTTP\\": "src/"
         }
+    },
+    "archive": {
+        "exclude": ["/tests","/phpunit.xml"]
     },
     "authors": [
         {
