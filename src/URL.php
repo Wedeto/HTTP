@@ -90,7 +90,7 @@ class URL implements \ArrayAccess
         $host     = $parts['host'] ?? null;
         $port     = $parts['port'] ?? null;
         $path     = $parts['path'] ?? '/';
-        $query    = $parts['query'] ?? '';
+        $query    = $parts['query'] ?? null;
         $fragment = $parts['fragment'] ?? null;
 
         $query = self::parseQuery($query);
@@ -124,12 +124,12 @@ class URL implements \ArrayAccess
         if (is_array($query))
             return $query;
 
+        if (empty($query))
+            return null;
+
         if (!is_string($query))
             throw new \InvalidArgumentException('Query must be associative array or string');
         
-        if ($query === '')
-            return [];
-
         $query = ltrim($query, '?');
         $query = str_replace('&amp;', '&', $query);
         $parts = explode('&', $query);
@@ -143,7 +143,7 @@ class URL implements \ArrayAccess
                 $values[$subparts[0]] = $subparts[1];
         }
 
-        return $values;
+        return empty($values) ? null : $values;
     }
 
     /**
@@ -154,6 +154,7 @@ class URL implements \ArrayAccess
      */
     public function setPath(string $path)
     {
+        $path = '/' . ltrim($path, '/');
         $this->query = null;
         $this->fragment = null;
         if (preg_match('/^(.*?)(\\?([^#]*))?(#(.*))?$/u', $path, $matches))

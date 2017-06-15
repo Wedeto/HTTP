@@ -437,4 +437,16 @@ final class URLTest extends TestCase
         $this->expectExceptionMessage('Query must be associative array or string');
         $url->set('query', new \DateTime);
     }
+
+    public function testChangingURLDoesNotChangeContentsWhenNoQuerySet()
+    {
+        $url = new URL('http://example.com/foo');
+        $this->assertEquals(null, $url->query);
+
+        $url2 = new URL($url);
+        $this->assertEquals($url, $url2);
+
+        $url2->setPath('foo');
+        $this->assertEquals($url, $url2);
+    }
 }
