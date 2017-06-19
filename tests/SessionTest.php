@@ -87,7 +87,7 @@ final class SessionTest extends TestCase
         $a->startHTTPSession();
          
         $cookie = $a->getCookie();
-        $this->assertEquals('wasp_www_foobar_com', $cookie->getName());
+        $this->assertEquals('wedeto_www_foobar_com', $cookie->getName());
 
         $expires = new \DateTime("@" . $cookie->getExpires());
         $this->assertTrue(Date::isFuture($expires));

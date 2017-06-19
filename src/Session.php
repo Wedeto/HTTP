@@ -95,7 +95,7 @@ final class Session extends Dictionary
         $httponly = WF::parse_bool($this->config->dget('httponly', true));
 
         $this->url = new URL($base_url);
-        $session_name = (string)$this->config->dget('prefix', 'wasp_') . str_replace(".", "_", $this->url->host);
+        $session_name = (string)$this->config->dget('prefix', 'wedeto_') . str_replace(".", "_", $this->url->host);
 
         $this->session_cookie = new Cookie($session_name, "");
         $this->session_cookie
