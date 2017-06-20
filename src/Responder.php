@@ -370,7 +370,8 @@ class Responder
         $this->response->output($mime);
 
         // We're done
-        self::$logger->debug("** Finished processing request to {0}", [$this->request->url]);
+        $desc = StatusCode::description($this->response_code);
+        self::$logger->info("[{0} {1}] {2}", [$this->response_code, $desc, $this->request->url]);
         $this->die();
     }
         
