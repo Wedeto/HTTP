@@ -28,6 +28,7 @@ namespace Wedeto\HTTP\Response;
 use Throwable;
 
 use Wedeto\Util\Functions as WF;
+use Wedeto\HTTP\StatusCode;
 
 class Error extends Response
 {
@@ -44,8 +45,11 @@ class Error extends Response
      * @param string $user_message The message for the user
      * @param Throwable $previous The previous exception
      */
-    public function __construct(int $code, string $error, $user_message = null, $previous = null)
+    public function __construct(int $code, string $error = '', $user_message = null, $previous = null)
     {
+        if (empty($error))
+            $error = StatusCode::description($code);
+
         parent::__construct($error, $code, $previous);
         $this->user_message = $user_message;
     }

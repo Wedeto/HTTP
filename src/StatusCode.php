@@ -54,7 +54,6 @@ final class StatusCode
         303 => "See Other",
         304 => "Not Modified",
         305 => "Use Proxy",
-        306 => "Switch Proxy",
         307 => "Temporary Redirect",
         308 => "Permanent Redirect",
 
@@ -78,8 +77,6 @@ final class StatusCode
         416 => "Requested Range Not Satisfiable",
         417 => "Expectation Failed",
         418 => "I'm a teapot",
-        419 => "Authentication Timeout",
-        420 => "Method Failure",
         421 => "Misdirected Request",
         422 => "Unprocessable Entity",
         423 => "Locked",
@@ -88,13 +85,13 @@ final class StatusCode
         428 => "Precondition Required",
         429 => "Too Many Requests",
         431 => "Request Header Fields Too Large",
-        440 => "Login Timeout",
+        440 => "Login Time-out",
         444 => "No Response",
         449 => "Retry With",
         451 => "Unavailable For Legal Reasons",
-        494 => "Request Header Too Large",
-        495 => "Cert Error",
-        497 => "HTTP to HTTPS",
+        495 => "SSL Certificate Error",
+        496 => "SSL Certificate Required",
+        497 => "HTTP Request Sent to to HTTPS Port",
         499 => "Client Closed Request",
 
         // 5xx Server Error
@@ -111,7 +108,7 @@ final class StatusCode
         510 => "Not Extended",
         511 => "Network Authentication Required",
         520 => "Unknown Error",
-        522 => "Origin Connection Time-out"
+        522 => "Connection Time-out"
     );
 
     public static function description(int $code)
