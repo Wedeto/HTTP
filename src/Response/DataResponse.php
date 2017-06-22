@@ -72,6 +72,8 @@ class DataResponse extends Response
 
     /**
      * Set the available file formats - replacing the previous list
+     * @param array $formats Assocative array of mime-type => writer-class pairs
+     * @return DataResponse Provides fluent interface
      */
     public function setFileFormats(array $formats)
     {
@@ -79,6 +81,24 @@ class DataResponse extends Response
         foreach ($formats as $mime => $writer)
             $this->addFileFormat($mime, $writer);
 
+        return $this;
+    }
+
+    /**
+     * Reduce the list of available file formats to a single one
+     * @param string $mime The mime type to output. Must already be known
+     * @return DataResponse Provides fluent interface
+     */
+    public function forceMimeType(string $mime)
+    {
+        if (!isset($this->file_formats[$mime]))
+        {
+            throw new \InvalidArgumentException(
+                "Cannot force output without a writer available: " . $mime
+            );
+        }
+
+        $this->file_formats = [$mime => $this->file_formats[$mime]];
         return $this;
     }
 

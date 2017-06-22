@@ -160,6 +160,23 @@ final class DataResponseTest extends TestCase
         $keys = array_keys($writers);
         $this->assertEquals($keys, $a->getMimeTypes());
     }
+
+    public function testForceFileFormat()
+    {
+        $a = new DataResponse(['foo' => 'bar']);
+        $a->forceMimeType('application/json');
+
+        $mimes = $a->GetMimeTypes();
+        $this->assertEquals(1, count($mimes));
+        reset($mimes);
+
+        $this->assertEquals('application/json', $mimes[0]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot force output without a writer');
+
+        $a->forceMimeType('application/xml');
+    }
 }
 
 class TestDataResponseFooWriter extends \Wedeto\FileFormats\AbstractWriter
