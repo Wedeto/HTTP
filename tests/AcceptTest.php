@@ -37,7 +37,7 @@ final class AcceptTest extends TestCase
         $accept = new Accept('');
         $this->assertEquals($accept->getAccepted(), array('text/html' => 1.0, '*/*' => 0.9));
 
-        $accept = Accept::parseAccept("garbage");
+        $accept = Accept::parseAccept("garbage", false);
         $this->assertEquals($accept, array("garbage" => 1.0));
     }
 
@@ -111,5 +111,40 @@ final class AcceptTest extends TestCase
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('Invalid response type: FOO');
         $accept->foo();
+    }
+
+    public function testAcceptLanguages()
+    {
+        $accept = new Accept('nl,en-US;q=0.7,nl_nl;q=0.6,en;q=0.5');
+
+        $this->assertEquals(1.0, $accept->accepts('nl'));
+        $this->assertEquals(0.7, $accept->accepts('en-US'));
+        $this->assertEquals(0.6, $accept->accepts('nl_NL'));
+        $this->assertEquals(0.5, $accept->accepts('en'));
+    }
+
+    public function testAcceptedTypes()
+    {
+        $cl = new \ReflectionClass(Accept::class);
+        
+        $constants = $cl->getConstants();
+        foreach ($constants as $const => $val)
+        {
+            $should_throw = substr($const, 0, 7) !== 'ACCEPT_';
+            $thrown = false;
+            try
+            {
+                $a = new Accept('foo', $val); 
+            }
+            catch (\InvalidArgumentException $e)
+            {
+                $this->assertContains('Invalid accept header', $e->getMessage());
+                $thrown = true;
+            }
+            $this->assertEquals($should_throw, $thrown);
+        }
+
+        $this->assertTrue(isset($constants['ACCEPT_MIME']));
+        $this->assertTrue(isset($constants['ACCEPT_LANGUAGE']));
     }
 }

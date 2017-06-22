@@ -76,6 +76,9 @@ class Request
     /** Accepted response types indicated by client */
 	protected $accept;
 
+    /** Accepted response languages indicated by client */
+	protected $accept_language;
+
     /** Session storage */
     protected $session;
 
@@ -136,7 +139,8 @@ class Request
 
         $this->remote_ip = $this->server->get('REMOTE_ADDR');
         $this->remote_host = !empty($this->remote_ip) ? gethostbyaddr($this->remote_ip) : null;
-        $this->accept = new Accept($this->server->dget('HTTP_ACCEPT', ''));
+        $this->accept = new Accept($this->server->dget('HTTP_ACCEPT', ''), Accept::ACCEPT_MIME);
+        $this->accept_language = new Accept($this->server->dget('HTTP_ACCEPT_LANGUAGE', ''), Accept::ACCEPT_LANGUAGE);
 
         $this->parseFiles($files);
     }

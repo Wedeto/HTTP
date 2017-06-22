@@ -32,6 +32,9 @@ use Wedeto\Util\Functions as WF;
  */
 class Accept
 {
+    const ACCEPT_MIME = "type";
+    const ACCEPT_LANGUAGE = "lang";
+
     const JSON = "application/json";
     const CSS = "text/css";
     const JAVASCRIPT = "application/javascript";
@@ -47,13 +50,17 @@ class Accept
     /**
      * Construct the accept header, parsing the provided string
      */
-    public function __construct(string $accept)
+    public function __construct(string $accept, string $type = Accept::ACCEPT_MIME)
     {
-        $this->accept = $this->parseAccept($accept);
+        if ($type !== Accept::ACCEPT_MIME && $type !== Accept::ACCEPT_LANGUAGE)
+            throw new \InvalidArgumentException("Invalid accept header type: " . $type);
+
+        $this->type = $type;
+        $this->accept = $this->parseAccept($accept, $this->type === Accept::ACCEPT_LANGUAGE);
     }
 
     /**
-     * @return array The accepted response types. Keys of the array are mime
+     * @return array The accepted response types. Keys of the array are 
      * types, the values are the quality indicator, between 0 and 1, 1 being
      * the most preferred.
      */
@@ -68,11 +75,14 @@ class Accept
      * @param string $accept The accept header to parse
      * @return The parsed accept list
      */
-    public static function parseAccept(string $accept)
+    public static function parseAccept(string $accept, bool $is_lang)
     {
         // By default accept everything but prefer HTML
         if (empty($accept))
             $accept = "text/html;q=1.0,*/*;q=0.9";
+
+        // Normalize locales when the intl extension is available
+        $is_lang = $is_lang && class_exists('Locale', false);
 
 		$accept = explode(",", $accept);
         $accepted = array();
@@ -86,6 +96,9 @@ class Accept
 			else
 				$prio = 1.0;
 
+            if ($is_lang)
+                $type = \Locale::canonicalize($type);
+
 			$accepted[$type] = $prio;
 		}
 
@@ -96,20 +109,20 @@ class Accept
      * Check if a specified response type is accepted by the client. When
      * no types are specified, everything is accepted.
      *
-     * @param string $mime The mime-type of the response that is to be checked
+     * @param string $type The type of the response that is to be checked
      * @return float Returns 0 if the type is not accepted, and otherwise the priority
      */
-    public function accepts($mime)
+    public function accepts($type)
     {
-        foreach ($this->accept as $type => $priority)
+        foreach ($this->accept as $accept_type => $priority)
         {
-            if (strpos($type, "*") !== false)
+            if (strpos($accept_type, "*") !== false)
             {
-                $regexp = "/" . str_replace("WC", ".*", preg_quote(str_replace("*", "WC", $type), "/")) . "/i";
-                if (preg_match($regexp, $mime))
+                $regexp = "/" . str_replace("WC", ".*", preg_quote(str_replace("*", "WC", $accept_type), "/")) . "/i";
+                if (preg_match($regexp, $type))
                     return $priority;
             }
-            elseif (strtolower($mime) === strtolower($type))
+            elseif (strtolower($type) === strtolower($accept_type))
                 return $priority;
         }
 
@@ -120,8 +133,8 @@ class Accept
      * Compare the types based on the priorty in the accept header. Aliases
      * for common types are supported.
      *
-     * @param string $l The left-hand side of the comparison. Should be a mime-type
-     * @param string $r The right-hand side of the comparison. Should be a mime-type
+     * @param string $l The left-hand side of the comparison. Should be a type
+     * @param string $r The right-hand side of the comparison. Should be a type
      */
     public function compareTypes(string $l, string $r)
     {
@@ -134,8 +147,8 @@ class Accept
     /** 
      * Sort a list by their accept priority
      * @param array $types The list to sort. For arrays with numeric keys, the
-     *                     values are expected to be mime types. Otherwise,
-     *                     the keys are expected to be mime types. The array is
+     *                     values are expected to be types. Otherwise,
+     *                     the keys are expected to be types. The array is
      *                     passed by reference.
      * @return bool True on success, false on failure
      */
@@ -151,7 +164,7 @@ class Accept
      * Select the best response type to return from a list of available types.
      *
      * @param array $types The types that the script is willing to return
-     * @return string The mime type preferred by the client
+     * @return string The type preferred by the client
      */
     public function getBestResponseType(array $types)
     {
@@ -159,8 +172,8 @@ class Accept
             return "";
 
         $this->sortTypes($types);
-        $mime = reset($types);
-        return $this->accepts($mime) ? current($types) : null;
+        $type = reset($types);
+        return $this->accepts($type) ? current($types) : null;
     }
 
     /**
@@ -181,9 +194,9 @@ class Accept
 
         $this->sortTypes($types);
         $first = reset($types);
-        $mime = key($types);
+        $type = key($types);
 
-        return $this->accepts($mime) ? $first : null;
+        return $this->accepts($type) ? $first : null;
     }
 
 
@@ -208,12 +221,12 @@ class Accept
     public function __toString()
     {
         $parts = [];
-        foreach ($this->accept as $mime => $q)
+        foreach ($this->accept as $type => $q)
         {
             if ($q < 1.0)
-                $parts[] = sprintf("%s;q=%.1f", $mime, $q);
+                $parts[] = sprintf("%s;q=%.1f", $type, $q);
             else
-                $parts[] = $mime;
+                $parts[] = $type;
         }
         return implode(",", $parts);
     }

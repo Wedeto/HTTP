@@ -410,8 +410,9 @@ final class ResponderTest extends TestCase
             $this->assertContains("Die request", $e->getMessage());
 
             $log = $memlogger->getLog();
-            $this->assertEquals(1, count($log));
+            $this->assertEquals(2, count($log));
             $this->assertContains("Headers were already sent when Responder", $log[0]);
+            $this->assertContains("OK", $log[1]);
         }
     }
 }
