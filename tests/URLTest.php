@@ -454,4 +454,15 @@ final class URLTest extends TestCase
         $url2->setPath('foo');
         $this->assertEquals($url, $url2);
     }
+
+    public function testURLAcceptsUpperCasedSchemes()
+    {
+        $url = new URL('HTTP://FOO.COM');
+        $this->assertEquals('http', $url->scheme);
+        $this->assertEquals('foo.com', $url->host);
+
+        $url = new URL('HTTPS://FOO.COM');
+        $this->assertEquals('https', $url->scheme);
+        $this->assertEquals('foo.com', $url->host);
+    }
 }

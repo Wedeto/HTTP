@@ -97,7 +97,15 @@ class URL implements \ArrayAccess
 
         if (!$scheme && $host)
             $scheme = $default_scheme;
-        
+
+        // Scheme is case insensitive, to normalize to lowercase
+        if ($scheme !== null)
+            $scheme = strtolower($scheme);
+
+        // Hostnames are case insensitive, to normalize to lowercase
+        if ($host !== null)
+            $host = strtolower($host);
+
         if (!empty($scheme) && !in_array($scheme, array('http', 'https', 'ftp')))
             throw new URLException("Unsupported scheme: '" . $scheme . "'");
 
