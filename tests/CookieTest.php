@@ -68,7 +68,7 @@ final class CookieTest extends TestCase
         $a->setPath('/bar');
         $this->assertEquals('/bar', $a->getPath());
         
-        $expected = new URL('http://example.com/bar');
+        $expected = new URL('https://example.com/bar');
         $actual = $a->getURL();
         $this->assertEquals($expected->host, $actual->host);
         $this->assertEquals($expected->path, $actual->path);

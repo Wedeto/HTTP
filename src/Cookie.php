@@ -181,7 +181,7 @@ class Cookie
 
     public function getURL()
     {
-        return new URL($this->domain . $this->path);
+        return new URL(($this->secure ? 'https://' : 'http://') . $this->domain . $this->path);
     }
 
     /**

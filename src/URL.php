@@ -46,7 +46,7 @@ class URL implements \ArrayAccess
      * @param string|URL $url The URL to parse
      * @param string $default_scheme The scheme to use when the URL doesn't have any
      */
-    public function __construct($url = "", string $default_scheme = '')
+    public function __construct($url = "", string $default_scheme = null)
     {
         if (empty($url))
             return;
@@ -66,23 +66,17 @@ class URL implements \ArrayAccess
      * @param string $default_scheme A default scheme to use when no scheme is
      * used in the URL.
      */
-    public static function parse(string $url, string $default_scheme = '')
+    public static function parse(string $url, string $default_scheme = null)
     {
-        if (empty($default_scheme) && !empty($_SERVER['REQUEST_SCHEME']))
-            $default_scheme = $_SERVER['REQUEST_SCHEME'];
-        elseif ($default_scheme === '')
-            $default_scheme = 'http';
+        if (substr($url, 0, 4) === "www." && !empty($default_scheme))
+            $url = $default_scheme . '://' . $url;
+        elseif (substr($url, 0, 2) === '//' && !empty($_SERVER['REQUEST_SCHEME']))
+            $url = $_SERVER['REQUEST_SCHEME'] . '://' . substr($url, 2);
 
         $parts = parse_url($url);
 
         if ($parts === false)
             throw new URLException("Invalid URL: " . $url);
-
-        if (empty($parts['scheme']) && substr($url, 0, 1) !== "/" && !empty($default_scheme))
-        {
-            $url = $default_scheme . "://" . $url;
-            $parts = parse_url($url);
-        }
 
         $scheme   = $parts['scheme'] ?? null;
         $username = $parts['user'] ?? null;
@@ -94,9 +88,6 @@ class URL implements \ArrayAccess
         $fragment = $parts['fragment'] ?? null;
 
         $query = self::parseQuery($query);
-
-        if (!$scheme && $host)
-            $scheme = $default_scheme;
 
         // Scheme is case insensitive, to normalize to lowercase
         if ($scheme !== null)

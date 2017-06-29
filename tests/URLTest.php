@@ -274,24 +274,24 @@ final class URLTest extends TestCase
      */
     public function testDefaultScheme()
     {
-        $url = new URL('example.com/index', 'http');
-        $this->assertEquals((string)$url, 'http://example.com/index');
+        $url = new URL('www.example.com/index', 'http');
+        $this->assertEquals((string)$url, 'http://www.example.com/index');
 
-        $url = new URL('example.com/index', 'https');
-        $this->assertEquals((string)$url, 'https://example.com/index');
-        $this->assertTrue($url->secure, new URL('example.com/index', 'https'));
+        $url = new URL('www.example.com/index', 'https');
+        $this->assertEquals((string)$url, 'https://www.example.com/index');
+        $this->assertTrue($url->secure, new URL('www.example.com/index', 'https'));
 
-        $url = new URL('https://example.com/index', 'http');
-        $this->assertEquals((string)$url, 'https://example.com/index');
+        $url = new URL('https://www.example.com/index', 'http');
+        $this->assertEquals((string)$url, 'https://www.example.com/index');
 
-        $url = new URL('http://example.com/index', 'https');
-        $this->assertEquals((string)$url, 'http://example.com/index');
+        $url = new URL('http://www.example.com/index', 'https');
+        $this->assertEquals((string)$url, 'http://www.example.com/index');
 
         $backup = isset($_SERVER['REQUEST_SCHEME']) ? $_SERVER['REQUEST_SCHEME'] : null;
         $_SERVER['REQUEST_SCHEME'] = null;
 
-        $url = new URL('example.com/foo/bar');
-        $this->assertEquals('example.com', $url->host);
+        $url = new URL('www.example.com/foo/bar', 'http');
+        $this->assertEquals('www.example.com', $url->host);
         $this->assertEquals('/foo/bar', $url->path);
         $this->assertEquals('http', $url->scheme);
 
