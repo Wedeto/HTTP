@@ -142,7 +142,7 @@ class Request
         $this->accept = new Accept($this->server->dget('HTTP_ACCEPT', ''), Accept::ACCEPT_MIME);
         $this->accept_language = new Accept($this->server->dget('HTTP_ACCEPT_LANGUAGE', ''), Accept::ACCEPT_LANGUAGE);
 
-        $this->parseFiles($files);
+        $this->files = FileUpload::parseFileArray($files);
     }
 
     /**
@@ -189,13 +189,6 @@ class Request
         return $this;
     }
     
-    protected function parseFiles(array $files)
-    {
-        $this->files = [];
-        foreach ($files as $name => $info)
-            $this->files[] = new FileUpload($name, $info);
-    }
-
     /**
      * Start the HTTP Session, and initalize the session object
      * @param Wedeto\HTTP\Request Provides fluent interface
