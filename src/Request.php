@@ -164,7 +164,7 @@ class Request
 
             $host = $this->server['SERVER_NAME'] ?: $this->url->host;
             $port = $this->server['SERVER_PORT'] ?: $this->url->port;
-            $this->webroot = new URL('http://' . $host);
+            $this->webroot = !empty($host) ? new URL('http://' . $host) : new URL('/');
             if ($port && $port != 80)
                 $this->webroot->port = $port;
         }
