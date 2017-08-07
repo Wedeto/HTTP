@@ -41,6 +41,9 @@ final class ErrorTest extends TestCase
 
         $a = new Error(400, "Error", "User message");
         $this->assertEquals($a->getUserMessage(), "User message");
+
+        $a = new Error(400, "");
+        $this->assertEquals('Bad Request', $a->getMessage());
     }
 
     public function testGetMimeTypes()

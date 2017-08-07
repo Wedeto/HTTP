@@ -118,6 +118,7 @@ final class RequestTest extends TestCase
     public function testNoScheme()
     {
         unset($this->server['REQUEST_SCHEME']);
+        unset($this->server['SERVER_NAME']);
         $req = new Request($this->get, $this->post, $this->cookie, $this->server, $this->files);
         
         $expected = new URL('/foo');

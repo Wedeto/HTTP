@@ -25,7 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace Wedeto\HTTP\Response;
 
-use Wedeto\HTTP\URL
+use Wedeto\HTTP\URL;
 use Wedeto\Util\Functions as WF;
 
 /**
