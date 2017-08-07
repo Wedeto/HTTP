@@ -44,7 +44,7 @@ final class NonceTest extends TestCase
         $this->session = new Session($base, $cfg, $server);
         $this->session->startCLISession();
 
-        Nonce::setParameterName('nonce');
+        Nonce::setParameterName('_nonce');
         Nonce::setNonceExpiresInSeconds(300);
     }
 

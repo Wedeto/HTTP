@@ -34,7 +34,7 @@ use InvalidArgumentException;
 class Nonce
 {
     protected static $nonce_timeout = 300;
-    protected static $nonce_parameter = "nonce";
+    protected static $nonce_parameter = "_nonce";
 
     /**
      * Change the amount of time before nonces expire

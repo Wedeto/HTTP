@@ -28,7 +28,7 @@ namespace Wedeto\HTTP;
 use Wedeto\Util\Type;
 use Wedeto\Util\Functions as WF;
 
-class FormField
+class FormField implements FormElement
 {
     const TYPE_FILE = "__FILE__";
 
@@ -49,12 +49,32 @@ class FormField
      * @param mixed $value The default / initial value
      * @return FormData Provides fluent interface
      */
-    public function __construct(string $name, $type, $value = null)
+    public function __construct(string $name, $type, string $control_type, $value = null)
     {
         $this
             ->setName($name)
             ->setType($type)
+            ->setControlType($control_type)
             ->setValue($value);
+    }
+
+    /**
+     * Set the control type hint.
+     * @param string $type Should be a form element type such as text,
+     *                     textarea, hidden, etc.
+     */
+    public function setControlType(string $type)
+    {
+        $this->control_type = strtolower($type);
+        return $this;
+    }
+
+    /**
+     * @return string The control type hint
+     */
+    public function getControlType()
+    {
+        return $this->control_type;
     }
 
     /** 
@@ -130,8 +150,12 @@ class FormField
      * @param mixed $value The value to validate
      * @return bool True when the value validates, false if it does not
      */
-    public function validate($value)
+    public function validate(Request $request, string $method)
     {
+        $arguments = $method === "GET" ? $request->get : $request->post;
+        $value = $this->extractValue($this->isFile() ? $request->files : $arguments);
+        $this->setValue($value);
+
         $this->error = null;
         if ($this->is_array)
         {
