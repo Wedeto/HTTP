@@ -25,7 +25,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace Wedeto\HTTP\Response;
 
-use Wedeto\HTTP\URL;
+use Wedeto\HTTP\URL
+use Wedeto\Util\Functions as WF;
 
 /**
  * Provides a way to generate interceptable and testable redirects
@@ -43,11 +44,17 @@ class RedirectRequest extends Response
      * @param int $timeout The amount of seconds to wait before performing the redirect
      * @param Throwable $previous A chained exception. Can be null
      */
-    public function __construct(URL $url, int $status_code = 302, int $timeout = 0, $previous = null)
+    public function __construct($url, int $status_code = 302, int $timeout = 0, $previous = null)
     {
         // 3XX are only valid redirect status codes
         if ($status_code < 300 || $status_code > 399)
             throw new \InvalidArgumentException("A redirect should have a 3XX status code, not: " . $status_code);
+        
+        if (is_string($url))
+            $url = new URL($url);
+
+        if (!($url instanceof URL))
+            throw new \TypeError("Invalid URL: " . WF::str($url));
 
         parent::__construct("Redirect request to: " . $url, $status_code, $previous);
         $this->url = $url;
