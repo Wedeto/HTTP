@@ -26,15 +26,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace Wedeto\HTTP;
 
 use Wedeto\Util\Type;
-use Wedeot\Util\Dictionary;
+use Wedeto\Util\Dictionary;
 use Wedeto\Util\Functions as WF;
 
 use InvalidArgumentException;
 
 class Nonce
 {
-    protected static $nonce_timeout = 300000000;
-    protected static $gc_executed = false;
+    protected static $nonce_timeout = 300;
+    protected static $nonce_parameter = "nonce";
 
     /**
      * Change the amount of time before nonces expire
@@ -42,58 +42,58 @@ class Nonce
      */
     public static function setNonceExpiresInSeconds(int $seconds)
     {
-        self::$nonce_timeout = $seconds * 1000000;
+        self::$nonce_timeout = $seconds;
     }
 
     /**
-     * Generate a nonce for the specified action, store it in the session and return the nonce.
-     * @param string $action The action to tie the nonce to
-     * @param Session $session The session to store the nonce data in
-     * @param array $context The context required for the nonce to be validated
-     * @return array Associative array 'nonce' and 'nonce_action' keys that should be added to a form
+     * @return int The amount of seconds before nonces time out
      */
-    public static function getNonceValues(string $action, Session $session, array $context = [])
+    public static function getNonceExpiresInSeconds()
     {
-        // Remove expired nonces
-        self::gc();
+        return self::$nonce_timeout;
+    }
 
-        $now = microtime();
-        $hashable = $action . $now . $session->getSessionID();
-        foreach ($context as $key => &$val)
+    /**
+     * @param string $name The name for the nonce parameter, used by validateNonce
+     */
+    public static function setParameterName(string $name)
+    {
+        self::$nonce_parameter = $name;
+    }
+
+    /**
+     * @return string The name used for the nonce parameter
+     */
+    public static function getParameterName()
+    {
+        return self::$nonce_parameter;
+    }
+
+    /**
+     * Get a nonce for the specified action optionally including context
+     * @param string $action The action to tie the nonce to
+     * @param Session $session The session to get the session salt from
+     * @param array $context The context required for the nonce to be validated
+     * @return string The nonce that should be submitted as parameter nonce
+     */
+    public function getNonce(string $action, Session $session, array $context = [], int $timestamp = null)
+    {
+        // When nonce are not allowed to be stored, the nonce is not actually 
+        // used only once since it needs to be reproducable to be verifiable.
+        // Therefore, it sent timestamped to the client.
+        $timestamp = $timestamp ?? time();
+        $hashable = $action . $timestamp . $session->getSessionSalt();
+        foreach ($context as $key => $value)
         {
-            // Turn NULL into a scalar
-            if ($val === null)
-                $val = "";
-
-            // Only accept scalar values
-            if (!is_scalar($val))
+            if ($value === null)
+                $value = "NULL";
+            if (!is_scalar($value))
                 throw new InvalidArgumentException("Context variables must be scalar");
-
-            // Avoid storing long context strings, reduce to first 16 characters
-            if (is_string($val) && strlen($val) > 16)
-                $val = substr($val, 0, 16);
-
-            $hashable .= $key . '=' . $val;
+            $hashable .= '&' . $key . '=' . $value;
         }
-        $hash = sha1($hashable);
 
-        if (!$session->has('nonce', $action, Type::ARRAY))
-            $session->put('nonce', $action, []);
-
-        $section = $session->get('nonce', $action);
-
-        $nonce = [
-            'timestamp' => $now,
-            'action' => $action,
-            'context' => $context
-        ];
-
-        $section->put($hash, $nonce);
-
-        return [
-            'nonce' => $hash,
-            'nonce_action' => $action
-        ];
+        $nonce = sha1($hashable) . '$' . $timestamp;
+        return $nonce;
     }
 
     /**
@@ -103,65 +103,43 @@ class Nonce
      * @return bool True when a nonce was posted and validated, false if a nonce was posted and rejected,
      *              null when no nonce was posted.
      */
-    public static function validateNonce(string $action, Dictionary $arguments, Session $session)
+    public static function validateNonce(string $action, Session $session, Dictionary $arguments, array $context = [])
     {
         // Check if a nonce was posted at all
-        if (
-            !$arguments->has('nonce', Type::STRING) || 
-            !$arguments->has('nonce_action', Type::STRING)
-        )
+        if (!$arguments->has(self::$nonce_parameter, Type::STRING))
         {
             // No nonce submitted, indeterminate outcome
             return null;
         }
         
-        // Remove expired nonces
-        self::gc();
+        $context_values = [];
+        foreach ($context as $key => $value)
+        {
+            if (is_int($key)) 
+            {
+                $key = $value;
+                $value = $arguments->get($key);
+            }
+            $context_values[$key] = $value;
+        }
 
-        $nonce = $arguments->get('nonce');
+        $nonce = $arguments->getString(self::$nonce_parameter);
 
-        // Validate hash
-        if (!$session->has('nonce', $nonce, Type::ARRAY))
+        $parts = explode('$', $nonce);
+        if (count($parts) !== 2)
             return false;
-        
-        $elements = $session->getSection('nonce', $nonce);
-        // As the nonce is accessed now, it will expire directly, as
-        // its either being used legitimatally or is being abused.
-        unset($session['nonce'][$nonce]);
 
-        // Validate action
-        $nonce_action = $arguments->get('action');
-        if ($nonce_action !== $action || $elements['action'] !== $action)
-            return false; // Invalid action
+        list($hash, $timestamp) = $parts;
 
-        // Validate context
-        foreach ($elements['context'] as $key => $value)
-        {
-            if (!$arguments[$key] !== $value)
-                return false;
-        }
+        // Check that the nonce has not expired yet
+        $now = time();
+        if ($timestamp > $now || $now - $timestamp  > self::$nonce_timeout)
+            return false;
 
-        return true;
-    }
+        // Generate the expected nonce
+        $expected_nonce = self::getNonce($action, $session, $context_values, $timestamp);
 
-    /**
-     * Check all nonces stored in the session and remove nonces that
-     * have expired.
-     * @param Session $session The session where to remove expired nonces from
-     */
-    public static function gc(Session $session)
-    {
-        if (self::$gc_executed)
-            return;
-
-        $now = microtime();
-        $threshold = $now - self::$nonce_timeout * 1000000;
-        self::$gc_executed = true;
-        $section = $session->getSection('nonce');
-        foreach ($section as $hash => $nonce)
-        {
-            if ($nonce['timestamp'] < $threshold)
-                unset($section[$hash]);
-        }
+        // Compare the generated nonce with the submitted nonce
+        return $expected_nonce === $nonce;
     }
 }

@@ -402,6 +402,21 @@ final class Session extends Dictionary
     }
 
     /**
+     * @return string A unique session salt
+     */
+    public function getSessionSalt()
+    {
+        // Return pre-generated salt when available
+        if ($this->has('session_mgmt', 'salt', Type::STRING))
+            return $this->get('session_mgmt', 'salt'); 
+
+        // Generate salt if it is not available yet
+        $salt = sha1(microtime(true) . $this->getSessionID() . random_bytes(16));
+        $this->set('session_mgmt', 'salt', $salt);
+        return $salt;
+    }
+
+    /**
      * Close the current session
      * @return Session Provides fluent interface
      */
