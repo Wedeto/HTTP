@@ -40,6 +40,9 @@ class FormField implements FormElement
     protected $is_file = false;
     protected $is_array = false;
 
+    protected $title = '';
+    protected $description = '';
+
     protected $error = null;
 
     /**
@@ -49,13 +52,14 @@ class FormField implements FormElement
      * @param mixed $value The default / initial value
      * @return FormData Provides fluent interface
      */
-    public function __construct(string $name, $type, string $control_type, $value = null)
+    public function __construct(string $name, $type, string $control_type, $value = '')
     {
         $this
             ->setName($name)
             ->setType($type)
             ->setControlType($control_type)
-            ->setValue($value);
+            ->setValue($value)
+            ->setTitle(ucfirst($name));
     }
 
     /**
@@ -125,6 +129,8 @@ class FormField implements FormElement
 
         if (!$type instanceof Type)
             $type = new Type($type);
+
+        $this->validator = $type;
         return $this;
     }
 
@@ -211,7 +217,7 @@ class FormField implements FormElement
     /**
      * @return string The name of the field
      */
-    public function getName(bool $strip_array)
+    public function getName(bool $strip_array = false)
     {
         if ($strip_array)
         {
@@ -221,6 +227,34 @@ class FormField implements FormElement
         }
 
         return $this->name;
+    }
+
+    /**
+     * @return Type The validator for this element
+     */
+    public function getType()
+    {
+        return $this->validator;
+    }
+
+    public function setTitle(string $title)
+    {
+        $this->title = $title;
+    }
+
+    public function getTitle()
+    {
+        return $this->title;
+    }
+
+    public function setDescription(string $desc)
+    {
+        $this->description = $desc;
+    }
+
+    public function getDescription()
+    {
+        return $this->description;
     }
 
     /**
@@ -242,14 +276,7 @@ class FormField implements FormElement
     public function setValue($value)
     {
         $this->value = $value;
-    }
-
-    /**
-     * @return Type the validator
-     */
-    public function getValidator()
-    {
-        return $this->validator;
+        return $this;
     }
 
     /**

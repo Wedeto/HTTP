@@ -27,7 +27,9 @@ namespace Wedeto\HTTP;
 
 interface FormElement
 {
-    public function getName();
+    public function getName(bool $strip_array = false);
     public function getType();
     public function validate(Request $request, string $method);
+    public function getTitle();
+    public function getDescription();
 }

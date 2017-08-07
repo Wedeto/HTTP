@@ -76,7 +76,7 @@ class Nonce
      * @param array $context The context required for the nonce to be validated
      * @return string The nonce that should be submitted as parameter nonce
      */
-    public function getNonce(string $action, Session $session, array $context = [], int $timestamp = null)
+    public static function getNonce(string $action, Session $session, array $context = [], int $timestamp = null)
     {
         // When nonce are not allowed to be stored, the nonce is not actually 
         // used only once since it needs to be reproducable to be verifiable.

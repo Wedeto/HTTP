@@ -33,29 +33,36 @@ use ArrayIterator;
 class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
 {
     protected $method;
+    protected $endpoint;
     protected $name;
     protected $form_elements = [];
     protected $errors;
+
+    protected $title;
+    protected $description;
+    protected $submit_text = 'Submit';
 
     /**
      * Create a new form
      */
     public function __construct(string $method, string $name)
     {
-        $this->method = $method;
+        $this->method = strtoupper($method);
         $this->name = $name;
+        $this->title = ucfirst($name);
     }
 
     /**
      * Add a field to the form
      * @param string $name The name of the field
      * @param Type $type The validator to use to check the value
+     * @param string $control_type The type hint for the control
      * @param mixed $value The default / initial value
      * @return FormData Provides fluent interface
      */
-    public function addField(string $name, $type, $value = null)
+    public function addField(string $name, $type, string $control_type, $value = '')
     {
-        return $this->add(new FormField($name, $type, $value));
+        return $this->add(new FormField($name, $type, $control_type, $value));
     }
 
     /**
@@ -64,16 +71,24 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
      */
     public function add(FormElement $field)
     {
-        $tihs->field[$field->getName()] = $field;
+        $this->form_elements[$field->getName()] = $field;
         return $this;
     }
 
     /**
      * @return string The name of the form
      */
-    public function getName()
+    public function getName(bool $strip_array = false)
     {
         return $this->name;
+    }
+
+    /**
+     * @return string The method to use to submit the form
+     */
+    public function getMethod()
+    {
+        return $this->method;
     }
 
     /**
@@ -82,6 +97,49 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
     public function getType()
     {
         return "fieldset";
+    }
+
+    public function setEndPoint($url)
+    {
+        $this->endpoint = $url instanceof URL ? $url : new URL($url);
+        return $this;
+    }
+
+    public function getEndPoint()
+    {
+        return $this->endpoint;
+    }
+
+    public function setTitle(string $title)
+    {
+        $this->title = $title;
+        return $this;
+    }
+
+    public function getTitle()
+    {
+        return ucfirst($this->name);
+    }
+
+    public function setDescription(string $desc)
+    {
+        $this->description = $desc;
+    }
+
+    public function getDescription()
+    {
+        return $this->description;
+    }
+
+    public function setSubmitText(string $txt)
+    {
+        $this->submit_text = $txt;
+        return $this;
+    }
+
+    public function getSubmitText()
+    {
+        return $this->submit_text;
     }
 
     /**
