@@ -27,6 +27,7 @@ namespace Wedeto\HTTP;
 
 use Wedeto\Util\Type;
 use Wedeto\Util\Functions as WF;
+use Wedeto\Util\Dictionary;
 
 class FormField implements FormElement
 {
@@ -169,6 +170,7 @@ class FormField implements FormElement
             if (WF::is_array_like($value) && !($value instanceof Dictionary))
                 $value = new Dictionary($value);
 
+            $this->error = $this->validator->getErrorMessage($value);
             if ($value instanceof Dictionary)
                 return false;
 
@@ -191,23 +193,25 @@ class FormField implements FormElement
             }
 
             // All values validate
+            $this->error = null;
             return true;
         }
 
-        return $this->validator->validate($value);
+        $result = $this->validator->validate($value);
+        $this->error = $result ? null : $this->validator->getErrorMessage($value);
+        return $result;
     }
 
     /**
-     * Return a error message explaining why the value is rejected Will always
+     * Return a error message explaining why the value is rejected. Will always
      * return an error, so should be called *after* validate failed.
-     * @param mixed $value The value to which the error applies
      */
-    public function getErrorMessage($value)
+    public function getErrorMessage()
     {
         if ($this->error !== null)
             return $this->error;
 
-        $error = $this->validator->getErrorMessage($value);
+        $error = $this->validator->getErrorMessage('');
         if ($this->is_array && WF::is_array_like($value) && $value !== null)
             $error['msg'] = 'Array of ' . $error['msg'];
 

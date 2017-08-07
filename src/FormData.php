@@ -151,8 +151,7 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
         $arguments = $this->method === "GET" ? $request->get : $request->post;
 
         // Check if the form has been submitted at all
-        if ($this->method !== $request->method || !$arguments['_form_name'] !== $this->name)
-            return false;
+        return $this->method === $request->method && $arguments['_form_name'] === $this->name;
     }
 
     /**
@@ -166,6 +165,7 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
             return false;
 
         // Validate nonce
+        $arguments = $this->method === "GET" ? $request->get : $request->post;
         $result = Nonce::validateNonce($this->name, $request->session, $arguments);
         if ($result === null)
         {
@@ -185,6 +185,9 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
             return false;
         }
 
+        unset($this->form_elements[Nonce::getParameterName()]);
+        unset($this->form_elements['_form_name']);
+
         return true;
     }
 
@@ -203,12 +206,11 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
             if (!$element->validate($request, $method))
             {
                 $complete = false;
-                $this->errors[$name] = $element->getErrorMessage($value);
+                $this->errors[$name] = $element->getErrorMessage();
             }
         }
 
-        if (!$complete)
-            return false;
+        return $complete;
     }
 
     /**
@@ -243,6 +245,11 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
 
         return $this;
     }
+
+    public function getErrors()
+    {
+        return $this->errors;
+    }   
 
     /**
      * Rewind the array iterator
