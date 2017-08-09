@@ -41,10 +41,12 @@ class FormField implements FormElement
     protected $is_file = false;
     protected $is_array = false;
 
+    protected $attributes = [];
+
     protected $title = '';
     protected $description = '';
 
-    protected $error = null;
+    protected $errors = [];
 
     /**
      * Create a new form field
@@ -163,14 +165,14 @@ class FormField implements FormElement
         $value = $this->extractValue($this->isFile() ? $request->files : $arguments);
         $this->setValue($value);
 
-        $this->error = null;
+        $this->errors = [];
         if ($this->is_array)
         {
             // Validate arrays element by element
             if (WF::is_array_like($value) && !($value instanceof Dictionary))
                 $value = new Dictionary($value);
 
-            $this->error = $this->validator->getErrorMessage($value);
+            $this->error[] = $this->validator->getErrorMessage($value);
             if ($value instanceof Dictionary)
                 return false;
 
@@ -187,35 +189,27 @@ class FormField implements FormElement
             {
                 if (!$this->validator->validate($v))
                 {
-                    $this->error = $this->validator->getErrorMessage($v);
+                    $this->errors[] = $this->validator->getErrorMessage($v);
                     return false;
                 }
             }
 
             // All values validate
-            $this->error = null;
+            $this->errors = [];
             return true;
         }
 
         $result = $this->validator->validate($value);
-        $this->error = $result ? null : $this->validator->getErrorMessage($value);
+        $this->errors = $result ? null : [$this->validator->getErrorMessage($value)];
         return $result;
     }
 
     /**
-     * Return a error message explaining why the value is rejected. Will always
-     * return an error, so should be called *after* validate failed.
+     * Returns any errors that occured during validation
      */
-    public function getErrorMessage()
+    public function getErrors()
     {
-        if ($this->error !== null)
-            return $this->error;
-
-        $error = $this->validator->getErrorMessage('');
-        if ($this->is_array && WF::is_array_like($value) && $value !== null)
-            $error['msg'] = 'Array of ' . $error['msg'];
-
-        return $error;
+        return $this->errors;
     }
 
     /**
@@ -324,5 +318,33 @@ class FormField implements FormElement
 
         // Result matches expected depth
         return $value;
+    }
+
+    public function getAttribute(string $name)
+    {
+        return $this->attributes[$name] ?? null;
+    }
+
+    public function setAttribute(string $name, string $value)
+    {
+        $this->attributes[$name] = $value;
+        return $this;
+    }
+    
+    public function clearAttribute(string $name)
+    {
+        unset($this->attributes[$name]);
+        return $this;
+    }
+
+    public function setAttributes(array $attributes)
+    {
+        $this->attributes = $attributes;
+        return $this;
+    }
+    
+    public function getAttributes()
+    {
+        return $this->attributes;
     }
 }

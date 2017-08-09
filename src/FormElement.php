@@ -32,4 +32,11 @@ interface FormElement
     public function validate(Request $request, string $method);
     public function getTitle();
     public function getDescription();
+    public function getErrors();
+
+    public function getAttribute(string $name);
+    public function setAttribute(string $name, string $value);
+    public function clearAttribute(string $name);
+    public function getAttributes();
+    public function setAttributes(array $attributes);
 }

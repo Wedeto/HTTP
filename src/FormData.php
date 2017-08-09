@@ -36,11 +36,13 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
     protected $endpoint;
     protected $name;
     protected $form_elements = [];
-    protected $errors;
+    protected $errors = [];
 
     protected $title;
     protected $description;
     protected $submit_text = 'Submit';
+
+    protected $attributes = [];
 
     /**
      * Create a new form
@@ -142,6 +144,34 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
         return $this->submit_text;
     }
 
+    public function getAttributes()
+    {
+        return $this->attributes;
+    }
+
+    public function setAttributes(array $attributes)
+    {
+        $this->attributes = $attributes;
+        return $this;
+    }
+
+    public function getAttribute(string $name)
+    {
+        return $this->attributes[$name] ?? null;
+    }
+
+    public function setAttribute(string $name, string $value)
+    {
+        $this->attributes[$name] = $value;
+        return $this;
+    }
+
+    public function clearAttribute(string $name)
+    {
+        unset($this->attributes[$name]);
+        return $this;
+    }
+
     /**
      * Check if the form has been submitted
      * @return bool True if the form was submitted, false if not
@@ -199,18 +229,15 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
         $arguments = $method === "GET" ? $request->get : $request->post;
 
         // Check all posted values
-        $complete = true;
+        $valid = true;
         $this->errors = [];
         foreach ($this->form_elements as $name => $element)
         {
             if (!$element->validate($request, $method))
-            {
-                $complete = false;
-                $this->errors[$name] = $element->getErrorMessage();
-            }
+                $valid = false;
         }
 
-        return $complete;
+        return $valid;
     }
 
     /**
