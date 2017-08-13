@@ -218,6 +218,11 @@ class FormField implements FormElement
         return $error;
     }
 
+    public function getErrors()
+    {
+        return $this->error === null ? [] : [$this->error];
+    }
+
     /**
      * @return string The name of the field
      */
