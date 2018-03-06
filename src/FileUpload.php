@@ -3,7 +3,7 @@
 This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
-Copyright 2017, Egbert van der Wal
+Copyright 2017-2018, Egbert van der Wal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -105,7 +105,7 @@ class FileUpload
         }
 
         // Lowercase the file extension
-        $this->file_name = $f->setExt($f->getExt());
+        $this->file_name = $f->withExtension($f->getExtension());
 
         // Store the temporary location
         $this->location = $tmp_name;

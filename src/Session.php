@@ -3,7 +3,7 @@
 This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
-Copyright 2017, Egbert van der Wal
+Copyright 2017-2018, Egbert van der Wal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -28,7 +28,9 @@ namespace Wedeto\HTTP;
 use DateTime;
 use DateInterval;
 
-use Wedeto\Util\Cache;
+use Wedeto\Util\Cache\Manager as CacheManager;
+use Wedeto\Util\Cache\Cache;
+use Wedeto\Util\DI\DI;
 use Wedeto\Util\Dictionary;
 use Wedeto\Util\Type;
 use Wedeto\Util\Date;
@@ -152,7 +154,8 @@ final class Session extends Dictionary
      */
     public function startCLISession()
     {
-        $this->session_cache = new Cache('cli-session');
+        $cm = DI::getInjector()->getInstance(CacheManager::class);
+        $this->session_cache = $cm->getCache('cli-session');
         $ref = &$this->session_cache->get();
 
         $GLOBALS['_SESSION'] = &$ref;
@@ -431,7 +434,9 @@ final class Session extends Dictionary
                 $this->session_id = null;
             }
             elseif ($this->session_cache !== null)
-                Cache::saveCache();
+            {
+                $this->session_cache->save();
+            }
             $this->active = false;
         }
 

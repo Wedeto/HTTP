@@ -3,7 +3,7 @@
 This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
-Copyright 2017, Egbert van der Wal
+Copyright 2017-2018, Egbert van der Wal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -35,7 +35,8 @@ use org\bovigo\vfs\vfsStreamDirectory;
 
 use Wedeto\Util\Dictionary;
 use Wedeto\Util\Date;
-use Wedeto\Util\Cache;
+use Wedeto\Util\Cache\Manager as CacheManager;
+use Wedeto\Util\DI\DI;
 
 use Wedeto\HTTP\URL;
 
@@ -67,13 +68,18 @@ final class SessionTest extends TestCase
         vfsStreamWrapper::register();
         vfsStreamWrapper::setRoot(new vfsStreamDirectory('cachedir'));
         $this->dir = vfsStream::url('cachedir');
-        Cache::setCachePath($this->dir);
+
+        DI::startNewContext('test');
+        
+        $this->cache = DI::getInjector()->getInstance(CacheManager::class);
+        $this->cache->setCachePath($this->dir);
     }
 
     public function tearDown()
     {
         if (session_status() === PHP_SESSION_ACTIVE)
             session_commit();
+        DI::destroyContext('test');
     }
     
     /**

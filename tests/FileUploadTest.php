@@ -154,7 +154,7 @@ final class FileUploadTest extends TestCase
         $file = $file_object->getFile();
         $this->assertEquals($final_dir, $file->getDir());
 
-        $final_path = $file->getPath();
+        $final_path = $file->getFullPath();
         $this->assertTrue(file_exists($final_path));
         $this->assertEquals('foobar', file_get_contents($final_path));
         $this->assertFalse(file_exists($f));
