@@ -99,6 +99,9 @@ final class RequestTest extends TestCase
 
         $this->server['foobarred_server'] = true;
         $this->assertEquals($req->server->getAll(), $this->server);
+
+        $body = $req->body;
+        $this->assertInstanceOf(RequestBody::class, $body);
     }
 
     /**

@@ -32,9 +32,6 @@ use Wedeto\Util\Dictionary;
 /**
  * Request encapsulates a HTTP request, containing all data transferrred to the
  * script by the client and the webserver.
- *
- * It will dispatch the request to the correct app by resolving the route in
- * the configured paths.
  */
 class Request
 {
@@ -51,7 +48,10 @@ class Request
 
     /** The request method used for the current request: GET, POST etc */
     protected $method;
-    
+
+    /** The request body */
+    protected $body;
+
     /** The full request URL */
     protected $url;
 
@@ -125,6 +125,7 @@ class Request
         $this->server = Dictionary::wrap($server);
 
         $this->method = $this->server['REQUEST_METHOD'];
+        $this->body = new RequestBody($this->server);
         $proto = $this->server->dget('SERVER_PROTOCOL', 'HTTP/1.1');
         if (preg_match('|HTTP/(\d+\.\d+)|', $proto, $matches))
             $this->http_version = $proto[1];
