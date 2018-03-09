@@ -5,9 +5,9 @@
     "homepage": "https://wedeto.net",
     "type": "library",
     "require": {
-        "Wedeto/Util": "~0.9.14",
+        "Wedeto/Util": "~0.9.15",
         "Wedeto/IO": "~0.9.6",
-        "Wedeto/FileFormats": "~0.9.1",
+        "Wedeto/FileFormats": "~0.9.3",
         "php": ">=7.0.0"
     },
     "require-dev": {

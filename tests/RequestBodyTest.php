@@ -145,7 +145,7 @@ final class RequestBodyTest extends TestCase
     {
         $req = new Dictionary;
         $req['HTTP_CONTENT_TYPE'] = 'application/xml';
-        $content = '<?xml version="1.0"?><doc><foo>foobar</foo></doc>';
+        $content = '<?xml version="1.0"?><doc><foo bar="baz">foobar</foo></doc>';
         $req['HTTP_CONTENT_LENGTH'] = strlen($content);
         
         $tmp = tempnam("/tmp", "wdttest");
@@ -160,7 +160,8 @@ final class RequestBodyTest extends TestCase
         $this->assertEquals('application/xml', $body->getContentType());
 
         $dict = $body->getParsedContent();
-        $this->assertEquals('foobar', $dict['foo']);
+        $this->assertEquals('foobar', $dict['foo']['_content_']);
+        $this->assertEquals('baz', $dict['foo']['_bar']);
     }
 
     public function testRequestParserGetUnsupportedData()
