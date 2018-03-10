@@ -23,9 +23,10 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto\HTTP;
+namespace Wedeto\HTTP\Forms;
 
 use Wedeto\Util\Type;
+use Wedeto\Util\Validator;
 use Wedeto\Util\Functions as WF;
 use Wedeto\Util\Dictionary;
 
@@ -33,7 +34,7 @@ class FormField implements FormElement
 {
     const TYPE_FILE = "__FILE__";
 
-    protected $validator;
+    protected $validators = [];
     protected $name;
     protected $name_parts = [];
     protected $name_depth = 1;
@@ -44,20 +45,20 @@ class FormField implements FormElement
     protected $title = '';
     protected $description = '';
 
-    protected $error = null;
+    protected $errors = [];
 
     /**
      * Create a new form field
      * @param string $name The name of the field
-     * @param Type $type The validator to use to check the value
+     * @param Validator $validator The validator to use to check the value
      * @param mixed $value The default / initial value
      * @return FormData Provides fluent interface
      */
-    public function __construct(string $name, $type, string $control_type, $value = '')
+    public function __construct(string $name, $validator, string $control_type, $value = '')
     {
         $this
             ->setName($name)
-            ->setType($type)
+            ->addValidator($validator)
             ->setControlType($control_type)
             ->setValue($value)
             ->setTitle(ucfirst($name));
@@ -99,7 +100,7 @@ class FormField implements FormElement
             if (empty($matches[2]))
             {
                 if ($this->name_depth > 1)
-                    throw new \InvalidArgumentException("Invalid name: $name");
+                    throw new \InvalidArgumentException("Invalid name: {$this->name}");
                 $this->is_array = true;
             } 
             else
@@ -115,26 +116,39 @@ class FormField implements FormElement
 
     /**
      * Change the type of the field
-     * @param Type $type The type to set. Set this to anything acceptable
-     *                   to the Wedeto\Util\Type constructor, or to
-     *                   FormField::TYPE_FILE to accept file uploads.
+     * @param Validator $validator The validator to add. Provide either
+     *                   one of the constants in Type, or a instantiated
+     *                   Validator. FormField::TYPE_FILE will be transparently
+     *                   converted to a file upload form field.
      * @return FormField Provides fluent interface
      */
-    public function setType($type)
+    public function addValidator($validator)
     {
-        if ($type === FormField::TYPE_FILE)
+        if ($validator === FormField::TYPE_FILE)
         {
             $this->is_file = true;
-            $type = Type::RESOURCE;
+            $validator = Type::RESOURCE;
         }
 
-        if (!$type instanceof Type)
-            $type = new Type($type);
+        if (!$validator instanceof Validator)
+            $validator = new Validator($validator);
 
-        $this->validator = $type;
+        $this->validators[] = $validator;
         return $this;
     }
 
+    /**
+     * Remove a validator with a specific index
+     * @param int $index The index to remove
+     * @return FormField Provides fluent interface
+     */
+    public function removeValidator(int $index)
+    {
+        $validators = $this->validators;
+        unset($validators[$index]);
+        $this->validators = array_values($validators);
+        return $this;
+    }
 
     /**
      * @return bool True when this field is a file upload, false if not
@@ -163,64 +177,66 @@ class FormField implements FormElement
         $value = $this->extractValue($this->isFile() ? $request->files : $arguments);
         $this->setValue($value);
 
-        $this->error = null;
+        $this->errors = [];
         if ($this->is_array)
         {
             // Validate arrays element by element
             if (WF::is_array_like($value) && !($value instanceof Dictionary))
                 $value = new Dictionary($value);
 
-            $this->error = $this->validator->getErrorMessage($value);
             if ($value instanceof Dictionary)
-                return false;
+            {
+                $this->errors[] = 'Invalid value';
+            }
 
             // Value should be a shallow array
             if (!$value->isShallow())
-                return false;
+            {
+                $this->errors[] = 'Field should not nest';
+            }
 
             // Empty depends on the value of nullable
             if (count($value) === 0 && !$this->validator->isNullable())
-                return false;
+            {
+                $this->errors[] = 'Required field';
+            }
 
             // Validate each value of the array
             foreach ($value as $key => $v)
             {
-                if (!$this->validator->validate($v))
+                foreach ($this->validators as $validator)
                 {
-                    $this->error = $this->validator->getErrorMessage($v);
-                    return false;
+                    if (!$validator->validate($v))
+                    {
+                        $this->errors[] = $validator->getErrorMessage($v);
+                    }
                 }
             }
 
-            // All values validate
-            $this->error = null;
-            return true;
+            // Check if any errors were produced
+            return count($this->errors) === 0;
         }
 
-        $result = $this->validator->validate($value);
-        $this->error = $result ? null : $this->validator->getErrorMessage($value);
-        return $result;
+        foreach ($this->validators as $validator)
+        {
+            $result = $validator->validate($value);
+            if (!$result)
+            {
+                $this->errors[] = $this->validator->getErrorMessage($value);
+            }
+        }
+
+        return count($this->errors) === 0;
     }
 
     /**
-     * Return a error message explaining why the value is rejected. Will always
-     * return an error, so should be called *after* validate failed.
+     * Return the error messages produced during validation. Should be called
+     * after validation failed, otherwise an non-relevant or empty array will be
+     * returned.
      */
-    public function getErrorMessage()
-    {
-        if ($this->error !== null)
-            return $this->error;
-
-        $error = $this->validator->getErrorMessage('');
-        if ($this->is_array && WF::is_array_like($value) && $value !== null)
-            $error['msg'] = 'Array of ' . $error['msg'];
-
-        return $error;
-    }
-
     public function getErrors()
     {
-        return $this->error === null ? [] : [$this->error];
+        return $this->errors;
     }
 
     /**
@@ -239,11 +255,21 @@ class FormField implements FormElement
     }
 
     /**
-     * @return Type The validator for this element
+     * @return array The list of validators for this element
      */
-    public function getType()
+    public function getValidators()
     {
-        return $this->validator;
+        return $this->validators;
+    }
+
+    /**
+     * Get the validator with a specific index
+     * @param int $index The index of the validator
+     * @return Validator The validator at that index. Null if it doesn't exist.
+     */
+    public function getValidator(int $index)
+    {
+        return $this->validators[$index] ?? null;
     }
 
     public function setTitle(string $title)

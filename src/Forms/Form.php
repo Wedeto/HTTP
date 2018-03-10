@@ -3,7 +3,7 @@
 This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
-Copyright 2017, Egbert van der Wal
+Copyright 2017-2018, Egbert van der Wal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -23,19 +23,20 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto\HTTP;
+namespace Wedeto\HTTP\Forms;
 
 use Wedeto\Util\Dictionary;
 use Wedeto\Util\Type;
 
 use ArrayIterator;
 
-class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
+class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
 {
     protected $method;
     protected $endpoint;
     protected $name;
     protected $form_elements = [];
+    protected $form_validators = [];
     protected $errors;
 
     protected $title;
@@ -58,7 +59,7 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
      * @param Type $type The validator to use to check the value
      * @param string $control_type The type hint for the control
      * @param mixed $value The default / initial value
-     * @return FormData Provides fluent interface
+     * @return Form Provides fluent interface
      */
     public function addField(string $name, $type, string $control_type, $value = '')
     {
@@ -76,11 +77,36 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
     }
 
     /**
+     * Add a field that validates the entire form, after each
+     * individual field has been validated.
+     * 
+     * @param Type $validator The validator that will be passed the entire form
+     * @return Form Provides fluent interface
+     */
+    public function addFormValidator(Type $validator)
+    {
+        $this->form_validators[] = $validator; 
+        return $this;
+    }
+
+    /**
      * @return string The name of the form
      */
     public function getName(bool $strip_array = false)
     {
         return $this->name;
+    }
+
+    /**
+     * Set the method to use for this form
+     *
+     * @param string $method The method to used, PUT, POST, GET, DELETE, PATCH etc
+     * @return $this Provides fluent interface
+     */
+    public function setMethod(string $method)
+    {
+        $this->method = strtoupper($method);
+        return $this;
     }
 
     /**
@@ -94,7 +120,7 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * @return string The type of the control: fieldset
      */
-    public function getType()
+    public function getControlType()
     {
         return "fieldset";
     }
@@ -210,6 +236,15 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
             }
         }
 
+        foreach ($this->validators as $validator)
+        {
+            if (!$validator->validate($this))
+            {
+                $complete = false;
+                $this->errors[''] = $validator->getErrorMessage();
+            }
+        }
+
         return $complete;
     }
 
@@ -218,13 +253,13 @@ class FormData implements FormElement, \Iterator, \ArrayAccess, \Countable
      * @param Session $session The session used to generate the nonce. Omit to skip adding a nonce
      * @param bool $is_root_form Whether this is the root form or not. When
      *                           false, the _form_name element is not added
-     * @return FormData Provides fluent interface
+     * @return Form Provides fluent interface
      */
     public function prepare(Session $session = null, bool $is_root_form = true)
     {
         foreach ($this->form_elements as $field)
         {
-            if ($field instanceof FormData)
+            if ($field instanceof Form)
                 $field->prepare(null, false);
         }
 

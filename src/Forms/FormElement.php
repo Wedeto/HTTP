@@ -23,12 +23,12 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace Wedeto\HTTP;
+namespace Wedeto\HTTP\Forms;
 
 interface FormElement
 {
     public function getName(bool $strip_array = false);
-    public function getType();
+    public function getControlType();
     public function validate(Request $request, string $method);
     public function getTitle();
     public function getDescription();
