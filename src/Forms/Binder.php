@@ -31,20 +31,31 @@ use Wedeto\DB\DAO;
 use Wedeto\Util\Type;
 use Wedeto\Util\Validator;
 use Wedeto\Util\LoggerAwareStaticTrait;
+use Wedeto\DB\Exception\InvalidValueException;
 
 use ReflectionClass;
 use ReflectionProperty;
 use ReflectionMethod;
 
+use RuntimeException;
+
+class BinderException extends RuntimeException
+{ }
+
 /**
- * Create forms automatically
+ * Binds forms to object instances in two directions: generates forms
+ * based on Model or BaseForm classes, and fills instances of these
+ * classes using submitted data.
  */
-class FormFactory
+class Binder
 {
     /**
      * Create a form based on a database model
+     * 
+     * @param string $classname The name of the Model class
+     * @param DAO $dao The DAO that provides more information about the class
      */
-    public function forModel(string $classname, DAO $dao, string $method = "POST")
+    public function formForModel(string $classname, DAO $dao)
     {
         if (!is_a($classname, Model::class, true))
             throw new \InvalidArgumentException("You must provide a valid Model class");
@@ -54,9 +65,9 @@ class FormFactory
         $form = new FormData($method, $classname);
         foreach ($columns as $name => $coldef)
         {
-            $validator = function ($value) use ($classname, $name, $coldef)
+            $validator = function ($value) use ($classname, $coldef)
             {
-                return $classname::validate($coldef, $name, $coldef);
+                return $classname::validate($coldef, $value);
             };
 
             $type = new Validator(Type::VALIDATE_CUSTOM, ['custom' => $validator]);
@@ -85,12 +96,11 @@ class FormFactory
      * does not.
      *
      * @param string $formclass The class to build a form from
-     * @param string $method The method to use to submit the form
      * @return FormData The constructed form
      *
      * @see Wedeto\Util\Validator
      */
-    public function forForm(string $formclass, string $method = "POST")
+    public function formForObject(string $formclass)
     { 
         if (!is_a($formclass, BaseForm::class))
             throw new \InvalidArgumentException("You must provide a valid BaseForm class");
@@ -211,5 +221,157 @@ class FormFactory
             $fields[$name] = $field;
         }
         return $fields;
+    }
+
+    /**
+     * Set values on an object from a (validated) form.
+     * 
+     * @param Form $form The form to get values from
+     * @param string $class The classname of the object to instantiate and fill
+     * @return The new, filled object.
+     */
+    public function bind(Form $form, string $class)
+    {
+        if (!((is_string($class) && class_exists($class)) || ($class instanceof ReflectionClass)))
+            throw new BinderException("Provide a classname or a reflection class to bind");
+
+        if ($class instanceof ReflectionClass)
+        {
+            $refl = $class;
+            $class = $refl->getName();
+            $isModel = $refl->isSubclassOf(Model::class);
+            $isForm = $refl->isSubclassOf(BaseForm::class);
+        }
+        else
+        {
+            $refl = new ReflectionClass($class);
+            $isModel = $refl->isSubclassOf(Model::class);
+            $isForm = $refl->isSubclassOf(BaseForm::class);
+        }
+
+        if (!$isModel && !$isForm)
+            throw new BinderException("Can only bind subclasses of BaseForm and Model");
+
+        $instance = new $class;
+        foreach ($form as $key => $formelement)
+        {
+            if ($formelement instanceof Form)
+            {
+                $this->bindSubForm($formelement, $refl, $instance);
+            }
+            else
+            {
+                $this->bindValue($formelement, $refl, $instance);
+            }
+        }
+    }
+
+    /**
+     * Set a value from a form to an instance of a class
+     * 
+     * @param FormElement $element The element containing the value
+     * @param ReflectionClass $refl The ReflectionClass of the object being set
+     * @param object $instance The object being set
+     */
+    protected function bindValue(FormElement $element, ReflectionClass $refl, object $instance)
+    {
+        $name = $element->getName();
+        $value = $element->getValue();
+        $method_name = "set" . strtoupper($name, 0, 1) . substr($name, 1);
+        if ($refl->hasMethod($method_name))
+        {
+            $setter = $refl->getMethod($method_name);
+            $params = $setters->getParameters();
+            if (count($params) !== 1)
+                throw new BinderException("Setter $method_name should take exactly one argument");
+
+            $param = reset($params);
+
+            if ($param->hasType())
+            {
+                // If the parameter has a type hint, make sure it fits
+                $transformedValue = $this->transform($param, $value);
+                $setter->invoke($instance, $transformedValue);
+            }
+            else
+            {
+                // Otherwise, there's nothing we can do except just set it
+                $setter->invoke($instance, $value);
+            }
+        }
+        elseif ($refl->isSubclassOf(Model::class))
+        {
+            // Model provides a setField method that should be able to set all parameters
+            $instance->setField($key, $formelement->getValue());
+        }
+        else
+        {
+            // No known accessors, the property should be settable directly
+            if (!$refl->hasProperty($name))
+                throw new BinderException("There is no attribute $name on class {$refl->getName()}");
+
+            $property = $refl->getProperty($name);
+            if (!$property->isPublic() || $property->isStatic())
+                throw new BinderException("Property $name should be public and non-static");
+
+            $property->setValue($instance, $value);
+        }
+    }
+
+    /**
+     * Bind a subform to a parameter of the instance
+     *
+     * @param Form $subform The subform to bind to a value
+     * @param ReflectionClass $refl The ReflectionClass of the parent form
+     * @param object $instance The instance to set values on
+     */
+    protected function bindSubForm(Form $subform, ReflectionClass $refl, object $instance)
+    {
+        $name = $subform->getName();
+        // Nested forms are generated from setters that take Forms or Models as argument
+        $method_name = "set" . strtoupper(substr($name, 0, 1)) . substr($name, 1);
+        if (!$refl->hasMethod($method_name))
+            throw new BinderException("Subform should match a setter with name $method_name");
+
+        $setter = $refl->getMethod($method_name);
+        if (!$setter->isPublic())
+            throw new BinderException("Setter method $method_name should be public");
+
+        $params = $setter->getParameters();
+        if (count($params) !== 1)
+            throw new BinderException("Setter method $method_name should take exactly 1 typed parameter");
+
+        $param = reset($params);
+        if (!$param->hasType())
+            throw new BinderException("Setter method $method_name should have exactly 1 typed parameter");
+
+        $type = (string)$setter->getType();
+        if ($type === "array" && $subform->isRepeatable())
+        {
+            // To fill the array, a classname is still needed. The class should provide a
+            // getClassOf method for that.
+            $classname = $refl->getName();
+            if (!method_exists([$classname, 'getClassOf']))
+            {
+                throw new BinderException(
+                    "Cannot determine type of array elements for field "
+                    . "{$this->name}. Provide getClassOf method."
+                );
+            }
+
+            // Get the name of the class to set
+            $subclassname = $classname::getClassOf($name);
+            if (empty($subclassname) || !class_exists($subclassname))
+                throw new BinderException("getClassOf provided invalid class for $name");
+
+            $subclass = new ReflectionClass($classname);
+        }
+        else
+        {
+            $subclass = $setter->getClass();
+        }
+
+        $value = $this->bind($subform, $subclass);
+        $setter->invoke($instance, $value);
     }
 }

@@ -27,28 +27,34 @@ namespace Wedeto\HTTP\Forms;
 
 use Wedeto\Util\Dictionary;
 use Wedeto\Util\Type;
+use Wedeto\Util\Functions as WF;
 
 use ArrayIterator;
 
 class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
 {
-    protected $method;
+    protected $method = "POST";
     protected $endpoint;
     protected $name;
     protected $form_elements = [];
     protected $form_validators = [];
     protected $errors;
+    protected $value = null;
 
+    protected $required = true;
+    protected $repeatable = false;
     protected $title;
     protected $description;
     protected $submit_text = 'Submit';
 
     /**
      * Create a new form
+     *
+     * @param string $name The name of the form. Used for nonces and scoping
+     *                     when nesting forms.
      */
-    public function __construct(string $method, string $name)
+    public function __construct(string $name)
     {
-        $this->method = strtoupper($method);
         $this->name = $name;
         $this->title = ucfirst($name);
     }
@@ -86,6 +92,18 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     public function addFormValidator(Type $validator)
     {
         $this->form_validators[] = $validator; 
+        return $this;
+    }
+
+    /**
+     * Set the name for the form
+     *
+     * @param string $name The name
+     * @return Form Provides fluent interface
+     */
+    public function setName(string $name)
+    {
+        $this->name = $name;
         return $this;
     }
 
@@ -187,11 +205,13 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
      */
     public function isValid(Request $request)
     {
-        if (!$this->validate($request, $this->method))
+        $arguments = $this->method === "GET" ? $request->get : $request->post;
+        $files = $request->files;
+
+        if (!$this->validate($arguments, $files))
             return false;
 
         // Validate nonce
-        $arguments = $this->method === "GET" ? $request->get : $request->post;
         $result = Nonce::validateNonce($this->name, $request->session, $arguments);
         if ($result === null)
         {
@@ -216,24 +236,77 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
 
         return true;
     }
+    
+    /**
+     * @return bool True when required, false when not
+     */
+    public function isRequired()
+    {
+        return $this->required;
+    }
 
     /**
-     * Make sure the form was submitted correctly
+     * Set the required flag of the form
+     * @param bool $required Whether the form is required
+     * @return Form Provides fluent interface
      */
-    public function validate(Request $request, string $method)
+    public function setRequired(bool $required)
     {
-        $arguments = $method === "GET" ? $request->get : $request->post;
+        $this->required = $required;
+        return $this;
+    }
 
-        // Check all posted values
+    /**
+     * @return bool True if the values in this form occur multiple times, grouped
+     */
+    public function isRepeatable()
+    {
+        return $this->repeatable;
+    }
+
+    /**
+     * Set the repeatable state of this subform
+     * @param bool $repeatable Set to true to make this form an array of sub-elements
+     * @return Form Provides fluent interface
+     */
+    public function setRepeatable(bool $repeatable)
+    {
+        $this->repeatable = $repeatable;
+        return $this;
+    }
+
+    /**
+     * Make sure the form was submitted correctly. When errors occur,
+     * these can be obtained using getErrors.
+     *
+     * @param Dictionary $arguments The submitted arguments
+     * @param Dictionary $files The submitted files
+     * @return bool True if all fields validate, false if not.
+     */
+    public function validate(Dictionary $arguments, Dictionary $files)
+    {
+        // Check all submitted values
         $complete = true;
         $this->errors = [];
+        $this->value = [];
         foreach ($this->form_elements as $name => $element)
         {
-            if (!$element->validate($request, $method))
+            if ($element instanceof Form)
             {
-                $complete = false;
-                $this->errors[$name] = $element->getErrorMessage();
+                // Subforms are validated as sub form to unwrap nested structures
+                if (!$element->validateAsSubForm($arguments, $files))
+                {
+                    $this->errors[$name] = $element->getErrors();
+                    $complete = false;
+                }
             }
+            elseif (!$element->validate($arguments, $files))
+            {
+                // Delegate validation to the form field
+                $this->errors[$name] = $element->getErrorMessage();
+                $complete = false;
+            }
+            $this->value[$name] = $element->getValue();
         }
 
         foreach ($this->validators as $validator)
@@ -246,6 +319,72 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
         }
 
         return $complete;
+    }
+
+    /**
+     * @return array All values in the form
+     */
+    public function getValue()
+    {
+        return $this->value;
+    }
+
+    /**
+     * Validate the form as a sub form
+     * 
+     * @param Dictionary $arguments The submitted data
+     * @param Dictionary $files The submitted files
+     * @return True if the form valides, false if not.
+     */
+    public function validateAsSubForm(Dictionary $arguments, Dictionary $files)
+    {
+        $name = $this->name;
+        if (!$arguments->has($name, Type::ARRAY))
+        {
+            $this->errors = [];
+            if ($element->isRequired())
+            {
+                $this->errors = ['' => "$name is required"];
+                $this->complete = false;
+            }
+            return $this->complete;
+        }
+
+        $sub = $arguments->get($name, Type::ARRAY);
+        $subfiles = $files->has($name, Type::ARRAY) ? $files[$name] : new Dictionary;
+
+        if ($this->repeatable)
+            return $this->validate($sub, $subfiles);
+
+        // Repeatable forms should be an array of arrays - each containing
+        // their own set of the values for the form elements. We need to
+        // collect them all here.
+        $value = [];
+        $errors = [];
+
+        // Only numeric keys are allowed for repeatable forms.
+        if (!WF::is_numeric_array($sub))
+        {
+            $this->errors = ['' => "$name should be an array"];
+            $this->complete = false;
+            return $this->complete;
+        }
+
+        // Validate each set of submitted data
+        $valid = true;
+        foreach ($sub as $idx => $sub_sub)
+        {
+            $subsubfiles = $subfiles->has($idx, Type::ARRAY) ? $subfiles[$idx] : new Dictionary;
+            $valid = $valid && $this->validate($subsub, $subsubfiles);
+            $subvalue = $this->getValue;
+            $value[$idx] = $subvalue;
+            $errors[$idx] = $this->errors;
+        }
+
+        // Store the value and the errors for the form as a whole.
+        $this->value = $value;
+        $this->errors = $error;
+        return $valid;
     }
 
     /**
@@ -281,6 +420,10 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
         return $this;
     }
 
+    /**
+     * @return array the list of errors, grouped by name. Errors relating to the form as a while
+     *               are returned with an empty string as key.
+     */
     public function getErrors()
     {
         return $this->errors;

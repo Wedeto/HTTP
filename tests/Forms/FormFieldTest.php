@@ -28,6 +28,7 @@ namespace Wedeto\HTTP\Forms;
 use PHPUnit\Framework\TestCase;
 
 use Wedeto\Util\Type;
+use Wedeto\Util\Dictionary;
 use Wedeto\Util\Validator;
 
 /**
@@ -44,6 +45,7 @@ final class FormFieldTest extends TestCase
         $this->assertEquals('bar', $field->getValue());
         $this->assertFalse($field->isArray());
         $this->assertFalse($field->isFile());
+        $this->assertEquals('Foo', $field->getTitle());
 
         $vals = $field->getValidators();
         $this->assertEquals(1, count($vals));
@@ -115,6 +117,121 @@ final class FormFieldTest extends TestCase
         $validators = $field->getValidators();
         $this->assertEquals(1, count($validators));
         $this->assertEquals(Type::STRING, $validators[0]->getType());
+    }
 
+    public function testValidation()
+    {
+        $field = new FormField('foo', Type::INT, 'text', 0);
+
+        $params = new Dictionary(['foo' => 3]);
+        $files = new Dictionary();
+        $valid = $field->validate($params, $files);
+        $this->assertEquals([], $field->getErrors());
+        $this->assertTrue($valid);
+
+        $params['foo'] = "3";
+        $valid = $field->validate($params, $files);
+        $this->assertEquals([], $field->getErrors());
+        $this->assertTrue($valid);
+
+        $params['foo'] = "bar";
+        $valid = $field->validate($params, $files);
+        $this->assertFalse($valid);
+        $msg = FormField::formatErrorMessage($field->getErrors()[0]);
+        $this->assertContains('Integral value required', $msg);
+    }
+
+    public function testDetermineIsRequired()
+    {
+        $field = new FormField('foo', Type::INT, 'text', 0);
+        $this->assertTrue($field->isRequired());
+
+        $nullableInt = new Validator(Type::INT, ['nullable' => true]);
+        $field = new FormField('foo', $nullableInt, 'text', 0);
+        $this->assertFalse($field->isRequired());
+        
+        $this->assertSame($nullableInt, $field->getValidator(0));
+    }
+
+    public function testValidateWithArray()
+    {
+        $field = new FormField('foo[]', Type::INT, 'text', 0);
+
+        $params = new Dictionary(['foo' => [3, 5, 7]]);
+        $files = new Dictionary;
+        $valid = $field->validate($params, $files);
+        $this->assertTrue($valid);
+
+        $params['foo'] = [3, "5", "bar"];
+        $valid = $field->validate($params, $files);
+        $this->assertFalse($valid);
+        $errors = $field->getErrors();
+        $this->assertTrue(isset($errors[2]));
+        $this->assertContains('Integral value required', FormField::formatErrorMessage($errors[2][0]));
+
+        $params['foo'] = "RandomString";
+        $valid = $field->validate($params, $files);
+        $this->assertFalse($valid);
+        $errors = $field->getErrors();
+        $this->assertContains('Invalid value for foo', FormField::formatErrorMessage($errors[''][0]));
+
+        $params['foo'] = ['foo' => [3, 4, 5]];
+        $valid = $field->validate($params, $files);
+        $this->assertFalse($valid);
+        $errors = $field->getErrors();
+        $this->assertContains('Field foo[] should not nest', FormField::formatErrorMessage($errors[''][0]));
+
+        $params['foo'] = [];
+        $valid = $field->validate($params, $files);
+        $this->assertFalse($valid);
+        $errors = $field->getErrors();
+        $this->assertContains('Required field: foo[]', FormField::formatErrorMessage($errors[''][0]));
+    }
+
+    public function testValidateWithMultiDimensionalArray()
+    {
+        $field = new FormField('foo[bar][baz]', Type::INT, 'text', 0);
+
+        $params = new Dictionary(['foo' => ['bar' => ['baz' => 1337]]]);
+        $files = new Dictionary;
+        $valid = $field->validate($params, $files);
+        $this->assertTrue($valid);
+        $this->assertEquals(1337, $field->getValue());
+
+        $params = new Dictionary(['foo' => ['bar' => ['baz' => 'text']]]);
+        $files = new Dictionary;
+        $valid = $field->validate($params, $files);
+        $this->assertFalse($valid);
+        $this->assertEquals('text', $field->getValue());
+
+        $params = new Dictionary(['foo' => []]);
+        $files = new Dictionary;
+        $valid = $field->validate($params, $files);
+        $this->assertFalse($valid);
+        $errors = $field->getErrors();
+        $this->assertContains('Required field', FormField::formatErrorMessage($errors[0]));
+        $this->assertNull($field->getValue());
+    }
+
+    public function testDescriptionSettingAndGetting()
+    {
+        $field = new FormField('foo', Type::STRING, 'text', null);
+        
+        $this->assertSame($field, $field->setDescription('A nice description'));
+        $this->assertEquals('A nice description', $field->getDescription());
+    }
+
+    public function testArrayLikeConvertedToDictionary()
+    {
+        $field = new FormField('foo[]', Type::STRING, 'text', null);
+
+        $std = new \ArrayObject;
+        $std[0] = "abc";
+        $std[1] = "abc";
+        $params = new Dictionary(['foo' => $std]);
+        $files = new Dictionary;
+
+        $valid = $field->validate($params, $files);
+        $this->assertTrue($valid);
     }
 }

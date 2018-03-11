@@ -25,11 +25,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace Wedeto\HTTP\Forms;
 
+use Wedeto\Util\Dictionary;
+
 interface FormElement
 {
     public function getName(bool $strip_array = false);
     public function getControlType();
-    public function validate(Request $request, string $method);
+    public function validate(Dictionary $arguments, Dictionary $files);
     public function getTitle();
     public function getDescription();
+    public function isRequired();
+    public function getValue();
 }

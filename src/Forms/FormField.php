@@ -30,6 +30,8 @@ use Wedeto\Util\Validator;
 use Wedeto\Util\Functions as WF;
 use Wedeto\Util\Dictionary;
 
+use Wedeto\Log\Logger;
+
 class FormField implements FormElement
 {
     const TYPE_FILE = "__FILE__";
@@ -131,7 +133,9 @@ class FormField implements FormElement
         }
 
         if (!$validator instanceof Validator)
-            $validator = new Validator($validator);
+        {
+            $validator = new Validator($validator, ['unstrict' => true]);
+        }
 
         $this->validators[] = $validator;
         return $this;
@@ -167,38 +171,67 @@ class FormField implements FormElement
     }
 
     /**
+     * @return bool True if the field is required, false if not
+     */
+    public function isRequired()
+    {
+        // If an empty value validates, the field is not required
+        return !($this->validate(new Dictionary, new Dictionary));
+    }
+
+    /**
      * Validate the value
-     * @param mixed $value The value to validate
+     * @param mixed $request The HTTP request containing the post data
      * @return bool True when the value validates, false if it does not
      */
-    public function validate(Request $request, string $method)
+    public function validate(Dictionary $arguments, Dictionary $files)
     {
-        $arguments = $method === "GET" ? $request->get : $request->post;
-        $value = $this->extractValue($this->isFile() ? $request->files : $arguments);
+        $source = $this->isFile() ? $files : $arguments;
+        $value = $this->extractValue($source);
         $this->setValue($value);
-
         $this->errors = [];
         if ($this->is_array)
         {
+            $name = $this->getName(true);
+            $value = $this->isFile() ? $files[$name] : $arguments[$name];
+            $this->setValue($value);
+
             // Validate arrays element by element
             if (WF::is_array_like($value) && !($value instanceof Dictionary))
                 $value = new Dictionary($value);
 
-            if ($value instanceof Dictionary)
+            if (!$value instanceof Dictionary)
             {
-                $this->errors[] = 'Invalid value';
+                $this->errors[''][] = [
+                    'msg' => 'Invalid value for {name}: {value}', 
+                    'context' => ['name' => $this->name, 'value' => (string)$value]
+                ];
+                return false;
             }
 
             // Value should be a shallow array
             if (!$value->isShallow())
             {
-                $this->errors[] = 'Field should not nest';
+                $this->errors[''][] = [
+                    'msg' => 'Field {name} should not nest',
+                    'context' => ['name' => $this->name]
+                ];
             }
 
             // Empty depends on the value of nullable
-            if (count($value) === 0 && !$this->validator->isNullable())
+            if (count($value) === 0)
             {
-                $this->errors[] = 'Required field';
+                $nullable = true;
+                foreach ($this->validators as $validator)
+                    $nullable = $nullable && $validator->isNullable();
+
+                if (!$nullable)
+                {
+                    $this->errors[''][] = [
+                        'msg' => 'Required field: {name}',
+                        'context' => ['name' => $this->name]
+                    ];
+                }
             }
 
             // Validate each value of the array
@@ -208,7 +241,7 @@ class FormField implements FormElement
                 {
                     if (!$validator->validate($v))
                     {
-                        $this->errors[] = $validator->getErrorMessage($v);
+                        $this->errors[$key][] = $validator->getErrorMessage($v);
                     }
                 }
             }
@@ -222,7 +255,7 @@ class FormField implements FormElement
             $result = $validator->validate($value);
             if (!$result)
             {
-                $this->errors[] = $this->validator->getErrorMessage($value);
+                $this->errors[] = $validator->getErrorMessage($value);
             }
         }
 
@@ -248,7 +281,7 @@ class FormField implements FormElement
         {
             $parts = $this->name_parts;
             $name = array_shift($parts);
-            return $name . '[' . implode('][', $parts) . ']';
+            return $name;
         }
 
         return $this->name;
@@ -272,21 +305,39 @@ class FormField implements FormElement
         return $this->validators[$index] ?? null;
     }
 
+    /**
+     * Set the title of the field
+     * @param string $title The title
+     * @return FormField Provides fluent interface
+     */
     public function setTitle(string $title)
     {
         $this->title = $title;
+        return $this;
     }
-
+    
+    /**
+     * @return string The title of the field
+     */
     public function getTitle()
     {
         return $this->title;
     }
 
+    /**
+     * Set the description of the field
+     * @param string $desc The description
+     * @return FormField Provides fluent interface
+     */
     public function setDescription(string $desc)
     {
         $this->description = $desc;
+        return $this;
     }
 
+    /**
+     * @return string The description of the field
+     */
     public function getDescription()
     {
         return $this->description;
@@ -355,5 +406,17 @@ class FormField implements FormElement
 
         // Result matches expected depth
         return $value;
+    }
+
+    /** 
+     * Format the error message into a single string
+     *
+     * @return string The formatted error message
+     */
+    public static function formatErrorMessage(array $error_message)
+    {
+        $msg = $error_message['msg'] ?? "";
+        $context = $error_message['context'] ?? [];
+        return Logger::fillPlaceholders($msg, $context);
     }
 }
