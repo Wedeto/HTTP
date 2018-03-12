@@ -38,7 +38,7 @@ use Wedeto\Util\Functions as WF;
 use Wedeto\Util\ErrorInterceptor;
 use Wedeto\HTTP\Error as HTTPError;
 
-final class Session extends Dictionary
+class Session extends Dictionary
 {
     /** Session cache object used to persist sessions in CLI sessions */
     private $session_cache = null;

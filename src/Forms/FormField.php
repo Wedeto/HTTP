@@ -43,6 +43,7 @@ class FormField implements FormElement
     protected $value;
     protected $is_file = false;
     protected $is_array = false;
+    protected $transformer = null;
 
     protected $title = '';
     protected $description = '';
@@ -188,7 +189,8 @@ class FormField implements FormElement
     {
         $source = $this->isFile() ? $files : $arguments;
         $value = $this->extractValue($source);
-        $this->setValue($value);
+        $this->setValue($value, true);
+        $value = $this->value;
         $this->errors = [];
         if ($this->is_array)
         {
@@ -344,24 +346,52 @@ class FormField implements FormElement
     }
 
     /**
+     * Set a transformer that serializes / deserializes values
+     * @param Transformer The Transformer to use
+     * @return FormField Provides fluent interface
+     */
+    public function setTransformer(Transformer $transformer)
+    {
+        $this->transformer = $transformer;
+        return $this;
+    }
+
+    /**
+     * @return Transformer The transformer used by this field
+     */
+    public function getTransformer()
+    {
+        return $this->transformer;
+    }
+
+    /**
      * Returns the value, optionally HTML escaped
-     * @param bool $html_escape Set to true to escape the output
+     * @param bool $transform Set to true to run the transformer on the value, false
+     *                        to return the raw value.
      * @return mixed The value for the item
      */
-    public function getValue(bool $html_escape = false)
+    public function getValue(bool $transform = false)
     {
-        return $html_escape ? htmlspecialchars($this->value) : $this->value;
+        if ($transform && $this->transformer !== null)
+            return $this->transformer->serialize($this->value);
+        return $this->value;
     }
         
     /**
      * Change the value for this field. The value is not validated, this is
      * just to be referred to later, for example for showing to the visitor
+     *
      * @param mixed $value The value to set
+     * @param bool $transform Whether to run the transformer on it before setting
      * @return FormField Provides fluent interface
      */
-    public function setValue($value)
+    public function setValue($value, bool $transform = false)
     {
-        $this->value = $value;
+        if ($transform && $this->transformer !== null)
+            $this->value = $this->transformer->deserialize($value);
+        else
+            $this->value = $value;
+
         return $this;
     }
 

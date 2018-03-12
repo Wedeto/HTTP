@@ -234,4 +234,29 @@ final class FormFieldTest extends TestCase
         $valid = $field->validate($params, $files);
         $this->assertTrue($valid);
     }
+
+    public function testTransformValue()
+    {
+        $field = new FormField('foo', Type::STRING, 'text', null);
+
+        $mocker = $this->prophesize(Transformer::class);
+        $mocker->serialize('foobar')->willReturn('yes');
+        $mocker->deserialize('no')->willReturn('barfoo');
+
+        $tf = $mocker->reveal();
+        $this->assertSame($field, $field->setTransformer($tf));
+
+        $this->assertSame($field, $field->setValue('no', true));
+        $this->assertEquals('barfoo', $field->getValue(false));
+        $this->assertSame($field, $field->setValue('foobar', false));
+        $this->assertEquals('yes', $field->getValue(true));
+        $this->assertSame($tf, $field->getTransformer());
+
+        $field = new FormField('foo', Type::STRING, 'text', null);
+        $this->assertSame($field, $field->setValue('no', true));
+        $this->assertEquals('no', $field->getValue(false));
+        $this->assertSame($field, $field->setValue('foobar', false));
+        $this->assertEquals('foobar', $field->getValue(true));
+        $this->assertNull($field->getTransformer());
+    }
 }

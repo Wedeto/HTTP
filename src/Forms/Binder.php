@@ -37,11 +37,6 @@ use ReflectionClass;
 use ReflectionProperty;
 use ReflectionMethod;
 
-use RuntimeException;
-
-class BinderException extends RuntimeException
-{ }
-
 /**
  * Binds forms to object instances in two directions: generates forms
  * based on Model or BaseForm classes, and fills instances of these
@@ -55,7 +50,7 @@ class Binder
      * @param string $classname The name of the Model class
      * @param DAO $dao The DAO that provides more information about the class
      */
-    public function formForModel(string $classname, DAO $dao)
+    public function createFormForModel(string $classname, DAO $dao)
     {
         if (!is_a($classname, Model::class, true))
             throw new \InvalidArgumentException("You must provide a valid Model class");
@@ -63,8 +58,15 @@ class Binder
         $columns = $dao->getColumns();
 
         $form = new FormData($method, $classname);
+        $refl = new ReflectionClass($classname);
+
+        $fields = $this->getAnnotatedFields($refl, []);
+
         foreach ($columns as $name => $coldef)
         {
+            if (isset($fields[$name]))
+                continue;
+
             $validator = function ($value) use ($classname, $coldef)
             {
                 return $classname::validate($coldef, $value);
@@ -72,49 +74,81 @@ class Binder
 
             $type = new Validator(Type::VALIDATE_CUSTOM, ['custom' => $validator]);
             $field = new FormField($name, $type, 'text', null); 
-            $form->add($field);
+
+            $fields[$name] = $field;
         }
 
+        foreach ($fields as $name => $field)
+            $form->add($field);
+
+        $this->addFormValidators($refl, [], $form);
         return $form;
     }
 
     /**
      * Create a form using reflection on a POPO.
      *
-     * The class is inspected for public getters and public properties.
-     * For each public getter with one argument, the type of the argument is extracted
-     * and used to determine the validation for the object.
+     * The class is inspected for public properties. All properties that have
+     * annotations in doc comments are used in the form, unless they have an
+     * ignore annotation.
      *
-     * For each public property, the property is checked for the default value. The
-     * default value can either be one of Type::* constants, or a valid class name.
+     * Supported annations are @var to provide the type. When @var is array,
+     * you need to specify the type of the elements in @element. 
+     * 
+     * You can specify more validators for the field by adding @validator annotations.
+     * Each annotation must be a Fully Qualified Class Name of a class can be be instantiated
+     * using Wedeto\DI. A default constructor will suffice for this.
      *
-     * The type is constructed using the information gathered this way.
+     * If you need more complex validators, you can also override the static listFieldValidators
+     * method to return an array with field names as key and arrays of validators as value.
      *
-     * Additionally, a custom validator can be added by adding a public static
-     * validate function that accepts a fieldname as its first argument and a value
-     * as its second argument. It should return true if the value is good, and false if it
-     * does not.
+     * The class doc comment is used to assign validators to the form as a whole, using the
+     * @validator annotation. The same rules for field validators apply. You can provide more
+     * complex validators by overriding the static listFormValidators method.
      *
      * @param string $formclass The class to build a form from
      * @return FormData The constructed form
      *
      * @see Wedeto\Util\Validator
      */
-    public function formForObject(string $formclass)
+    public function createFormForObject(string $formclass)
     { 
         if (!is_a($formclass, BaseForm::class))
-            throw new \InvalidArgumentException("You must provide a valid BaseForm class");
+            throw new \InvalidArgumentException("You must provide a subclass of BaseForm");
 
         $form = new FormData($method, $formclass);
         $refl = new \ReflectionClass($formclass);
 
         $field_validators = $formclass::listFieldValidators();
-        $setter_fields = $this->getSetterFields($refl, $ralidator);
-        $prop_fields = $this->getPropertyFields($refl, $validator);
-        $all_fieds = array_merge($prop_fields, $getter_fields);
-
+        $fields = $this->getAnnotatedFields($class, $field_validators);
         foreach ($all_fields as $name => $field)
             $form->add($field);
+
+        $this->addFormValidators($refl, $formclass::listFormValidators, $form);
+        return $form;
+    }
+
+    /**
+     * Add validators for the whole form
+     *
+     * @param ReflectionClass The reflection class to get validators from
+     * @param array $additional_validators Validators to add
+     * @param Form $form The form to add the validators to
+     */
+    protected function addFormValidators(ReflectionClass $refl, array $additional_validators, Form $form)
+    {
+        $classdoc = $refl->getDocComment();
+        if (!empty($classdoc))
+        {
+            $classdoc = new DocComment($classdoc);
+            foreach ($classdoc->getAnnotation('validator') as $validator)
+            {
+                if (!is_a($validator, Validator::class, true))
+                    throw new BinderException("Invalid validator class: $validator");
+                $validator = DI::getInjector()->getInstance($validator);
+                $form->add($validator);
+            }
+        }
 
         foreach ($formclass::listFormValidators() as $validator)
             $form->add($validator);
@@ -123,104 +157,68 @@ class Binder
     }
 
     /**
-     * Get fields from public properties. All public properties are considered.
-     * The default value of the field can be used as a type specifier - assign
-     * it a constant in Type::* to filter to that type, or set it to a classname
-     * to require objects of that class. If the default value is an array,
-     * an array is required.
+     * Iterate over all properties and add their values to the form
      *
-     * @param ReflectionClass $refl The class from which to extract properties
-     * @param array $field_validators A list of field validators for each field
-     * @return array The extracted fields, keys are the names.
+     * @param ReflectionClass $class The class to extract properties from
+     * @param array $field_validator Additional validators
      */
-    protected function getPropertyFields(ReflectionClass $refl, array $field_validators)
+    protected function getAnnotatedFields(ReflectionClass $class, array $field_validators)
     {
-        $props = $refl->getProperties(ReflectionProperty::IS_PUBLIC);
-        $defaults = $refl->getDefaultProperties();
-
+        $properties = $refl->getProperties(ReflectionProperty::IS_PUBLIC);
         $fields = [];
-        foreach ($props as $prop)
+        
+        foreach ($properties as $prop)
         {
             $name = $prop->getName();
+            $comment = $prop->getDocComment();
+            if ($comment === false)
+                continue;
 
-            $validators = (array)($field_validators[$name] ?? []);
+            $annotations = new DocComment($comment);
+            if ($annotations->getAnnotationFirst("ignore") === '')
+                continue;
 
-            $def = $defaults[$name];
-            $type = null;
-            if (null != $def)
+            $base_tp = $annotations->getAnnotationFirst("var");
+            if (empty($base_tp))
+                continue;
+
+            $element_tp = $base_tp === "array" ? $annotations->getAnnotationFirst("element") : null;
+            $search_type = $element_tp ?: $base_tp;
+
+            $const_name = Type::class . '::' . strtoupper($search_type);
+            $transformer = null;
+            if (defined($const_name))
             {
-                $constname = Type::class . '::' . $def;
-                if (is_array($def))
-                {
-                    $type = new Type(Type::ARRAY);
-                }
-                elseif (defined($constname))
-                {
-                    $type = new Type($def);
-                }
-                elseif (class_exists($def))
-                {
-                    $type = new Type(Type::OBJECT, ['instanceof' => $def]);
-                }
+                $type = new Type($const_name, ['unstrict' => true]);
             }
             else
-                $type = Type::SCALAR;
-
-            $field = new FormField($name, $type, 'text', null);
-            foreach ($validators as $validator)
-                $field->addValidator($validator);
-
-            $fields[$name] = $field;
-        }
-        
-        return $fields;
-    }
-
-    /**
-     * Get fields from public setters. All public methods starting with set
-     * and having exactly one argument are considered properties. The name
-     * of the property is the rest of the name of the method, with the first
-     * character lowercased.
-     *
-     * @param ReflectionClass The class from which to extract properties
-     * @param array $field_validators The validators specified by the class
-     * @return array The extracted fields, keys are the names.
-     */
-    protected function getSetterFields(ReflectionClass $refl, array $field_validators)
-    {
-        $methods = $refl->getMethods(ReflectionMethod::IS_PUBLIC);
-
-        $fields = [];
-        foreach ($methods as $method)
-        {
-            $name = $method->getName();
-            if (substr($name, 0, 3) !== "set")
-                continue;
-
-            $params = $method->getParameters();
-            if (count($params) !== 1)
-                continue;
-
-            $name = strtolower(substr($name, 3, 1)) . substr($name, 4);
-            $validators = (array)($field_validators[$name] ?? []);
-
-            $param = reset($params);
-            $type = null;
-            if ($param->hasType())
             {
-                $type = (string)$param->getType();
-                if ($param->isBuiltin())
-                    $type = strtoupper($type);
-                $type = new Type(Type::$type);
+                $type = new Type(Type::CLASS, ['instanceof' => $search_type]);
+                $transformer = TransformStore::getInstance()->getTransformer($search_type);
             }
 
-            $field = new FormField($name, $type, 'text', null);
-            foreach ($validator as $validator)
+            $fieldname = $element_tp !== null ? $name . '[]' : $name;
+
+            $field = new FormField($name, $type, 'text', '');
+            if ($transformer)
+                $field->setTransformer($transformer);
+
+            foreach ($annotations->getAnnotation('validator') as $valtype)
+            {
+                if (!is_a($valtype, Validator::class, true))
+                    throw new BinderException("Invalid validator class: $valtype");
+
+                $instance = DI::getInjector()->getInstance($valtype);
+                $field->addValidator($instance);
+            }
+
+            $additional = $field_validators[$name] ?? [];
+            foreach ($additional as $validator)
                 $field->addValidator($validator);
 
             $fields[$name] = $field;
         }
-        return $fields;
+        return $field;
     }
 
     /**
@@ -256,13 +254,9 @@ class Binder
         foreach ($form as $key => $formelement)
         {
             if ($formelement instanceof Form)
-            {
-                $this->bindSubForm($formelement, $refl, $instance);
-            }
-            else
-            {
-                $this->bindValue($formelement, $refl, $instance);
-            }
+                throw new BinderException("Cannot bind nester forms");
+
+            $this->bindValue($formelement, $refl, $instance);
         }
     }
 
@@ -316,62 +310,5 @@ class Binder
 
             $property->setValue($instance, $value);
         }
-    }
-
-    /**
-     * Bind a subform to a parameter of the instance
-     *
-     * @param Form $subform The subform to bind to a value
-     * @param ReflectionClass $refl The ReflectionClass of the parent form
-     * @param object $instance The instance to set values on
-     */
-    protected function bindSubForm(Form $subform, ReflectionClass $refl, object $instance)
-    {
-        $name = $subform->getName();
-        // Nested forms are generated from setters that take Forms or Models as argument
-        $method_name = "set" . strtoupper(substr($name, 0, 1)) . substr($name, 1);
-        if (!$refl->hasMethod($method_name))
-            throw new BinderException("Subform should match a setter with name $method_name");
-
-        $setter = $refl->getMethod($method_name);
-        if (!$setter->isPublic())
-            throw new BinderException("Setter method $method_name should be public");
-
-        $params = $setter->getParameters();
-        if (count($params) !== 1)
-            throw new BinderException("Setter method $method_name should take exactly 1 typed parameter");
-
-        $param = reset($params);
-        if (!$param->hasType())
-            throw new BinderException("Setter method $method_name should have exactly 1 typed parameter");
-
-        $type = (string)$setter->getType();
-        if ($type === "array" && $subform->isRepeatable())
-        {
-            // To fill the array, a classname is still needed. The class should provide a
-            // getClassOf method for that.
-            $classname = $refl->getName();
-            if (!method_exists([$classname, 'getClassOf']))
-            {
-                throw new BinderException(
-                    "Cannot determine type of array elements for field "
-                    . "{$this->name}. Provide getClassOf method."
-                );
-            }
-
-            // Get the name of the class to set
-            $subclassname = $classname::getClassOf($name);
-            if (empty($subclassname) || !class_exists($subclassname))
-                throw new BinderException("getClassOf provided invalid class for $name");
-
-            $subclass = new ReflectionClass($classname);
-        }
-        else
-        {
-            $subclass = $setter->getClass();
-        }
-
-        $value = $this->bind($subform, $subclass);
-        $setter->invoke($instance, $value);
     }
 }

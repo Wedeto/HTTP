@@ -29,7 +29,12 @@ use Wedeto\Util\Dictionary;
 use Wedeto\Util\Type;
 use Wedeto\Util\Functions as WF;
 
+use Wedeto\HTTP\URL;
+use Wedeto\HTTP\Session;
+use Wedeto\HTTP\Nonce;
+
 use ArrayIterator;
+use InvalidArgumentException;
 
 class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
 {
@@ -162,12 +167,13 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
 
     public function getTitle()
     {
-        return ucfirst($this->name);
+        return $this->title;
     }
 
     public function setDescription(string $desc)
     {
         $this->description = $desc;
+        return $this;
     }
 
     public function getDescription()
