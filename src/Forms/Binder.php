@@ -28,6 +28,7 @@ namespace Wedeto\HTTP\Forms;
 use Wedeto\DB\Model;
 use Wedeto\DB\DAO;
 
+use Wedeto\Util\DocComment;
 use Wedeto\Util\Type;
 use Wedeto\Util\Validator;
 use Wedeto\Util\LoggerAwareStaticTrait;

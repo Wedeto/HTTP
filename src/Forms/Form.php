@@ -29,6 +29,7 @@ use Wedeto\Util\Dictionary;
 use Wedeto\Util\Type;
 use Wedeto\Util\Functions as WF;
 
+use Wedeto\HTTP\Request;
 use Wedeto\HTTP\URL;
 use Wedeto\HTTP\Session;
 use Wedeto\HTTP\Nonce;
@@ -309,13 +310,13 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
             elseif (!$element->validate($arguments, $files))
             {
                 // Delegate validation to the form field
-                $this->errors[$name] = $element->getErrorMessage();
+                $this->errors[$name] = $element->getErrors();
                 $complete = false;
             }
             $this->value[$name] = $element->getValue();
         }
 
-        foreach ($this->validators as $validator)
+        foreach ($this->form_validators as $validator)
         {
             if (!$validator->validate($this))
             {
@@ -348,7 +349,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
         if (!$arguments->has($name, Type::ARRAY))
         {
             $this->errors = [];
-            if ($element->isRequired())
+            if ($this->isRequired())
             {
                 $this->errors = ['' => "$name is required"];
                 $this->complete = false;
@@ -356,10 +357,10 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
             return $this->complete;
         }
 
-        $sub = $arguments->get($name, Type::ARRAY);
+        $sub = $arguments->get($name);
         $subfiles = $files->has($name, Type::ARRAY) ? $files[$name] : new Dictionary;
 
-        if ($this->repeatable)
+        if (!$this->repeatable)
             return $this->validate($sub, $subfiles);
 
         // Repeatable forms should be an array of arrays - each containing

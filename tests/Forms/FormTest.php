@@ -33,6 +33,7 @@ use Wedeto\Util\Type;
 use Wedeto\HTTP\Session;
 use Wedeto\HTTP\URL;
 use Wedeto\HTTP\Nonce;
+use Wedeto\HTTP\Request;
 
 /**
  * @covers Wedeto\HTTP\Forms\Form
@@ -155,8 +156,7 @@ final class FormTest extends TestCase
 
     public function testNonceing()
     {
-        $session_mock = $this->prophesize(Session::class);
-        $session = new Session(new URL(''), new Dictionary, new Dictionary); //$session_mock->reveal();
+        $session = new Session(new URL(''), new Dictionary, new Dictionary);
         $session->start();
 
         $form = new Form('foobar');
@@ -185,5 +185,60 @@ final class FormTest extends TestCase
 
         $value = $nonce_el->getValue();
         $this->assertTrue(Nonce::validateNonce('foobar', $session, new Dictionary(['_nonce' => $value]), []));
+    }
+
+    public function testFormSubmitted()
+    {
+        $post = [
+            'test1' => '88',
+            'test2' => 'bar',
+            '_form_name' => 'myform'
+        ];
+        $none = [];
+        $server = ['REQUEST_METHOD' => 'POST'];
+        $req = new Request($none, $post, $none, $server, $none);
+        $cfg = new Dictionary([]);
+        $req->startSession(new URL('http://www.wedeto.net/'), $cfg);
+
+        $form = new Form('myform');
+        $form->setMethod('POST');
+        $form->addField('test1', Type::INT, 'text', '2');
+        $form->addField('test2', Type::STRING, 'text', 'foo');
+        $form->prepare($req->session);
+
+        $nonce = $form['_nonce'];
+        $post['_nonce'] = $nonce->getValue();
+
+        $this->assertTrue($form->isSubmitted($req));
+        $this->assertTrue($form->isValid($req));
+    }
+
+    public function testFormWithSubforms()
+    {
+        $post = [
+            'test1' => 'foo',
+            'part' => ['foo' => 'bar'],
+            '_form_name' => 'test'
+        ];
+        $none = [];
+        $server = ['REQUEST_METHOD' => 'POST'];
+        $req = new Request($none, $post, $none, $server, $none);
+        $cfg = new Dictionary([]);
+        $req->startSession(new URL('http://www.wedeto.net/'), $cfg);
+
+        $form = new Form('test');
+        $form->addField('test1', Type::STRING, 'text', 'test');
+        
+        $subform = new Form('part');
+        $subform->addField('foo', Type::STRING, 'text', 'test2');
+        $form->add($subform);
+        $form->prepare($req->session);
+
+        $post['_nonce'] = $form['_nonce']->getValue();
+
+        $this->assertTrue($form->isSubmitted($req));
+        $result = $form->isValid($req);
+
+        $this->assertEquals([], $form->getErrors());
     }
 }
