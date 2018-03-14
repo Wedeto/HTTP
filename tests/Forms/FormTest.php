@@ -30,6 +30,7 @@ use PHPUnit\Framework\TestCase;
 use Wedeto\Util\DI\DI;
 use Wedeto\Util\Dictionary;
 use Wedeto\Util\Type;
+use Wedeto\Util\Validator;
 use Wedeto\HTTP\Session;
 use Wedeto\HTTP\URL;
 use Wedeto\HTTP\Nonce;
@@ -213,6 +214,48 @@ final class FormTest extends TestCase
         $this->assertTrue($form->isValid($req));
     }
 
+    public function testFormFailsWithoutNonce()
+    {
+        $post = ['test1' => 'foo'];
+        $server = ['REQUEST_METHOD' => 'POST'];
+        $form = new Form('test');
+        $form->addField('test1', Type::STRING, 'text', 'test');
+
+        $none = [];
+        $req = new Request($none, $post, $none, $server, $none);
+        $cfg = new Dictionary;
+        $req->startSession(new URL('http://www.wedeto.nl/'), $cfg);
+        $this->assertFalse($form->isValid($req));
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['nonce']));
+        $this->assertcontains('Nonce was not submitted', $errors['nonce']['msg']);
+
+        $post['_nonce'] = 'invalid';
+        $this->assertFalse($form->isValid($req));
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['nonce']));
+        $this->assertcontains('Nonce was invalid', $errors['nonce']['msg']);
+    }
+
+    public function testFormInvalidDataFailsValidation()
+    {
+        $post = ['test1' => 'foo'];
+        $server = ['REQUEST_METHOD' => 'POST'];
+        $form = new Form('test');
+        $form->addField('test1', Type::INT, 'text', '1');
+
+        $none = [];
+        $req = new Request($none, $post, $none, $server, $none);
+        $cfg = new Dictionary;
+        $req->startSession(new URL('http://www.wedeto.nl/'), $cfg);
+        $this->assertFalse($form->isValid($req));
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['test1']));
+
+        $error = FormField::formatErrorMessage($errors['test1'][0]);
+        $this->assertcontains('Integral value required', $error);
+    }
+
     public function testFormWithSubforms()
     {
         $post = [
@@ -241,4 +284,143 @@ final class FormTest extends TestCase
 
         $this->assertEquals([], $form->getErrors());
     }
+
+    public function testFormWithSubformsWithInvalidData()
+    {
+        $post = [
+            'test1' => 'foo',
+            'part' => ['foo' => 'bar'],
+            '_form_name' => 'test'
+        ];
+        $none = [];
+        $server = ['REQUEST_METHOD' => 'POST'];
+        $req = new Request($none, $post, $none, $server, $none);
+        $cfg = new Dictionary([]);
+        $req->startSession(new URL('http://www.wedeto.net/'), $cfg);
+
+        $form = new Form('test');
+        $form->addField('test1', Type::STRING, 'text', 'test');
+        
+        $subform = new Form('part');
+        $subform->addField('foo', Type::INT, 'text', 'test2');
+        $form->add($subform);
+        $form->prepare($req->session);
+
+        $post['_nonce'] = $form['_nonce']->getValue();
+
+        $this->assertTrue($form->isSubmitted($req));
+        $result = $form->isValid($req);
+        $this->assertFalse($result);
+
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['part']), "Subform should have errors");
+        $this->assertTrue(isset($errors['part']['foo']), "Foo field should have errors");
+
+        $error = FormField::formatErrorMessage($errors['part']['foo'][0]);
+        $this->assertContains('Integral value required', $error);
+    }
+
+    public function testValidatewithFormValidators()
+    {
+        $post = [
+            'test1' => '3',
+            'test2' => '1',
+            '_form_name' => 'test'
+        ];
+        $none = [];
+        $server = ['REQUEST_METHOD' => 'POST'];
+        $req = new Request($none, $post, $none, $server, $none);
+        $cfg = new Dictionary([]);
+        $req->startSession(new URL('http://www.wedeto.net/'), $cfg);
+
+        $form = new Form('test');
+        $form->addField('test1', Type::INT, 'text', 'test');
+        $form->addField('test2', Type::INT, 'text', 'test');
+        $form->prepare($req->session);
+
+        $post['_nonce'] = $form['_nonce']->getValue();
+
+        $this->assertTrue($form->isValid($req));
+
+        $validator = new Validator(Validator::VALIDATE_CUSTOM, ['custom' => function ($form) {
+            $t1 = $form['test1'];
+            $t2 = $form['test2'];
+            if ($t2->getValue() <= $t1->getValue())
+                throw new \DomainException("Test2 should be greater than test1");
+            return true;
+        }]);
+        $form->addFormValidator($validator);
+    
+        $this->assertFalse($form->isValid($req));
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['']));
+        $error = FormField::formatErrorMessage($errors[''][0]);
+        $this->assertContains('should be greater than', $error);
+
+        $post['test2'] = '5';
+        $this->assertTrue($form->isValid($req));
+        $errors = $form->getErrors();
+        $this->assertEquals([], $errors);
+    }
+
+    public function testValidateWithRepeatable()
+    {
+        $post = [
+            'test1' => '3',
+            'foo' => [
+                [
+                    'test2' => '1',
+                    'test3' => 'foo'
+                ],
+                [
+                    'test2' => '3',
+                    'test3' => 'bar'
+                ]
+            ],
+            '_form_name' => 'test'
+        ];
+        $none = [];
+        $server = ['REQUEST_METHOD' => 'POST'];
+        $req = new Request($none, $post, $none, $server, $none);
+        $cfg = new Dictionary([]);
+        $req->startSession(new URL('http://www.wedeto.net/'), $cfg);
+
+        $form = new Form('test');
+        $form->addField('test1', Type::INT, 'text', 'test');
+
+        $form2 = new Form('foo');
+        $form2->setRepeatable(true);
+        $form2->addField('test2', Type::INT, 'text', 'test');
+        $form2->addField('test3', Type::STRING, 'text', 'test');
+
+        $form->add($form2);
+        $form->prepare($req->session);
+        $post['_nonce'] = $form['_nonce']->getValue();
+        $this->assertTrue($form->isValid($req));
+
+        $post['foo'][] = ['test2' => 'bar','test3' => 'baz'];
+        $this->assertFalse($form->isValid($req));
+
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['foo'][2]['test2'][0]));
+        $msg = FormField::formatErrorMessage($errors['foo'][2]['test2'][0]);
+        $this->assertContains('Integral value required', $msg);
+
+        $post['foo'] = "bar";
+        $this->assertFalse($form->isValid($req));
+
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['foo']));
+        $msg = FormField::formatErrorMessage($errors['foo']['']);
+        $this->assertContains('foo is required', $msg);
+
+        $post['foo'] = ['bar' => "bar"];
+        $this->assertFalse($form->isValid($req));
+
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['foo']));
+        $msg = FormField::formatErrorMessage($errors['foo']['']);
+        $this->assertContains('foo should be an array', $msg);
+    }
+
 }

@@ -27,6 +27,7 @@ namespace Wedeto\HTTP\Forms;
 
 use Wedeto\Util\Dictionary;
 use Wedeto\Util\Type;
+use Wedeto\Util\Validator;
 use Wedeto\Util\Functions as WF;
 
 use Wedeto\HTTP\Request;
@@ -68,7 +69,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * Add a field to the form
      * @param string $name The name of the field
-     * @param Type $type The validator to use to check the value
+     * @param Validator $type The validator to use to check the value
      * @param string $control_type The type hint for the control
      * @param mixed $value The default / initial value
      * @return Form Provides fluent interface
@@ -92,10 +93,10 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
      * Add a field that validates the entire form, after each
      * individual field has been validated.
      * 
-     * @param Type $validator The validator that will be passed the entire form
+     * @param Validator $validator The validator that will be passed the entire form
      * @return Form Provides fluent interface
      */
-    public function addFormValidator(Type $validator)
+    public function addFormValidator(Validator $validator)
     {
         $this->form_validators[] = $validator; 
         return $this;
@@ -321,7 +322,8 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
             if (!$validator->validate($this))
             {
                 $complete = false;
-                $this->errors[''] = $validator->getErrorMessage();
+                $error = $validator->getErrorMessage($this);
+                $this->errors[''][] = $error;
             }
         }
 
@@ -351,7 +353,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
             $this->errors = [];
             if ($this->isRequired())
             {
-                $this->errors = ['' => "$name is required"];
+                $this->errors = ['' => ['msg' => "{name} is required", 'context' => ['name' => $name]]];
                 $this->complete = false;
             }
             return $this->complete;
@@ -372,25 +374,27 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
         // Only numeric keys are allowed for repeatable forms.
         if (!WF::is_numeric_array($sub))
         {
-            $this->errors = ['' => "$name should be an array"];
+            $this->errors = ['' => ['msg' => "{name} should be an array", 'context' => ['name' => $name]]];
             $this->complete = false;
             return $this->complete;
         }
 
         // Validate each set of submitted data
         $valid = true;
-        foreach ($sub as $idx => $sub_sub)
+        foreach ($sub as $idx => $subsub)
         {
             $subsubfiles = $subfiles->has($idx, Type::ARRAY) ? $subfiles[$idx] : new Dictionary;
             $valid = $valid && $this->validate($subsub, $subsubfiles);
-            $subvalue = $this->getValue;
+            $subvalue = $this->getValue();
             $value[$idx] = $subvalue;
-            $errors[$idx] = $this->errors;
+
+            if (count($this->errors))
+                $errors[$idx] = $this->errors;
         }
 
         // Store the value and the errors for the form as a whole.
         $this->value = $value;
-        $this->errors = $error;
+        $this->errors = $errors;
         return $valid;
     }
 
