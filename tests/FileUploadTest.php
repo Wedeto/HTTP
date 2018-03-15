@@ -25,7 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace Wedeto\HTTP;
 
-use Wedeto\Util\Type;
+use Wedeto\Util\Validation\Type;
 
 use PHPUnit\Framework\TestCase;
 use org\bovigo\vfs\vfsStream;

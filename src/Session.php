@@ -32,7 +32,7 @@ use Wedeto\Util\Cache\Manager as CacheManager;
 use Wedeto\Util\Cache\Cache;
 use Wedeto\Util\DI\DI;
 use Wedeto\Util\Dictionary;
-use Wedeto\Util\Type;
+use Wedeto\Util\Validation\Type;
 use Wedeto\Util\Date;
 use Wedeto\Util\Functions as WF;
 use Wedeto\Util\ErrorInterceptor;

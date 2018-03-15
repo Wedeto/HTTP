@@ -29,8 +29,9 @@ use PHPUnit\Framework\TestCase;
 
 use Wedeto\Util\DI\DI;
 use Wedeto\Util\Dictionary;
-use Wedeto\Util\Type;
-use Wedeto\Util\Validator;
+use Wedeto\Util\Validation\Type;
+use Wedeto\Util\Validation\Validator;
+use Wedeto\Util\Validation\ValidationException;
 use Wedeto\HTTP\Session;
 use Wedeto\HTTP\URL;
 use Wedeto\HTTP\Nonce;
@@ -346,7 +347,7 @@ final class FormTest extends TestCase
             $t1 = $form['test1'];
             $t2 = $form['test2'];
             if ($t2->getValue() <= $t1->getValue())
-                throw new \DomainException("Test2 should be greater than test1");
+                throw new ValidationException("Test2 should be greater than test1");
             return true;
         }]);
         $form->addFormValidator($validator);

@@ -25,8 +25,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 namespace Wedeto\HTTP\Forms;
 
-use Wedeto\Util\Type;
-use Wedeto\Util\Validator;
+use Wedeto\Util\Validation\Type;
+use Wedeto\Util\Validation\Validator;
 use Wedeto\Util\Functions as WF;
 use Wedeto\Util\Dictionary;
 

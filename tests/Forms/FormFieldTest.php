@@ -27,9 +27,9 @@ namespace Wedeto\HTTP\Forms;
 
 use PHPUnit\Framework\TestCase;
 
-use Wedeto\Util\Type;
 use Wedeto\Util\Dictionary;
-use Wedeto\Util\Validator;
+use Wedeto\Util\Validation\Type;
+use Wedeto\Util\Validation\Validator;
 
 /**
  * @covers Wedeto\HTTP\Forms\FormField
