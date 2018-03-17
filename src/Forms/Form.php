@@ -26,6 +26,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace Wedeto\HTTP\Forms;
 
 use Wedeto\Util\Dictionary;
+use Wedeto\Util\TypedDictionary;
+use Wedeto\Util\Hook;
 use Wedeto\Util\Validation\Type;
 use Wedeto\Util\Validation\Validator;
 use Wedeto\Util\Functions as WF;
@@ -219,23 +221,18 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
         if (!$this->validate($arguments, $files))
             return false;
 
-        // Validate nonce
-        $result = Nonce::validateNonce($this->name, $request->session, $arguments);
-        if ($result === null)
-        {
-            $this->errors['nonce'] = [
-                'msg' => 'Nonce was not submitted for form {form}',
-                'context' => ['form' => $this->name]
-            ];
-            return false;
-        }
+        $params = ['form' => $this, 'request' => $request, 'valid' => true, 'arguments' => $arguments];
+        $params = TypedDictionary::wrap($params);
+        $params->setType('errors', Type::ARRAY);
+        $result = Hook::execute('Wedeto.HTTP.Forms.Form.isValid', $params);
 
-        if ($result === false)
+        if (!$result['valid'])
         {
-            $this->errors['nonce'] = [
-                'msg' => 'Nonce was invalid for form {form}',
-                'context' => ['form' => $this->name] 
-            ];
+            foreach ($result['errors'] as $field => $errors)
+            {
+                if ($errors instanceof Dictionary)
+                    $this->errors[$field] = $errors->toArray();
+            }
             return false;
         }
 
@@ -413,17 +410,9 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
                 $field->prepare(null, false);
         }
 
-        if ($session !== null)
-        {
-            $nonce_name = Nonce::getParameterName();
-            if (!isset($this->form_elements[$nonce_name]))
-            {
-                $context = [];
-                $nonce = Nonce::getNonce($this->name, $session, $context);
-                $this->form_elements[$nonce_name] = new FormField($nonce_name, Type::STRING, "hidden", $nonce);
-            }
-
-        }
+        $params = ['form' => $this, 'session' => $session, 'is_root_form' => $is_root_form];
+        $params = TypedDictionary::wrap($params);
+        Hook::execute('Wedeto.HTTP.Forms.Form.prepare', $params);
 
         if ($is_root_form)
             $this->form_elements['_form_name'] = new FormField('_form_name', Type::STRING, "hidden", $this->name);
@@ -493,7 +482,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
      */
     public function offsetGet($offset)
     {
-        return $this->form_elements[$offset];
+        return $this->form_elements[$offset] ?? null;
     }
 
     /**

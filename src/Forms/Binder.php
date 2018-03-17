@@ -29,8 +29,8 @@ use Wedeto\DB\Model;
 use Wedeto\DB\DAO;
 
 use Wedeto\Util\DocComment;
-use Wedeto\Util\Type;
-use Wedeto\Util\Validator;
+use Wedeto\Util\Validation\Type;
+use Wedeto\Util\Validation\Validator;
 use Wedeto\Util\LoggerAwareStaticTrait;
 use Wedeto\DB\Exception\InvalidValueException;
 
@@ -114,18 +114,18 @@ class Binder
      */
     public function createFormForObject(string $formclass)
     { 
-        if (!is_a($formclass, BaseForm::class))
+        if (!is_a($formclass, BaseForm::class, true))
             throw new \InvalidArgumentException("You must provide a subclass of BaseForm");
 
-        $form = new FormData($method, $formclass);
+        $form = new Form($formclass);
         $refl = new \ReflectionClass($formclass);
 
         $field_validators = $formclass::listFieldValidators();
-        $fields = $this->getAnnotatedFields($class, $field_validators);
-        foreach ($all_fields as $name => $field)
+        $fields = $this->getAnnotatedFields($refl, $field_validators);
+        foreach ($fields as $name => $field)
             $form->add($field);
 
-        $this->addFormValidators($refl, $formclass::listFormValidators, $form);
+        $this->addFormValidators($refl, [$formclass, 'listFormValidators'](), $form);
         return $form;
     }
 
@@ -151,7 +151,7 @@ class Binder
             }
         }
 
-        foreach ($formclass::listFormValidators() as $validator)
+        foreach ($additional_validators as $validator)
             $form->add($validator);
 
         return $form;
@@ -165,7 +165,7 @@ class Binder
      */
     protected function getAnnotatedFields(ReflectionClass $class, array $field_validators)
     {
-        $properties = $refl->getProperties(ReflectionProperty::IS_PUBLIC);
+        $properties = $class->getProperties(ReflectionProperty::IS_PUBLIC);
         $fields = [];
         
         foreach ($properties as $prop)
@@ -176,10 +176,10 @@ class Binder
                 continue;
 
             $annotations = new DocComment($comment);
-            if ($annotations->getAnnotationFirst("ignore") === '')
+            if (!empty($annotations->getAnnotation("ignore")))
                 continue;
 
-            $base_tp = $annotations->getAnnotationFirst("var");
+            $base_tp = $annotations->getAnnotationTokens("var")[0];
             if (empty($base_tp))
                 continue;
 
@@ -190,11 +190,11 @@ class Binder
             $transformer = null;
             if (defined($const_name))
             {
-                $type = new Type($const_name, ['unstrict' => true]);
+                $type = new Type(constant($const_name), ['unstrict' => true]);
             }
             else
             {
-                $type = new Type(Type::CLASS, ['instanceof' => $search_type]);
+                $type = new Validator(Type::OBJECT, ['instanceof' => $search_type]);
                 $transformer = TransformStore::getInstance()->getTransformer($search_type);
             }
 
@@ -204,7 +204,7 @@ class Binder
             if ($transformer)
                 $field->setTransformer($transformer);
 
-            foreach ($annotations->getAnnotation('validator') as $valtype)
+            foreach ($annotations->getAnnotations('validator') as $valtype)
             {
                 if (!is_a($valtype, Validator::class, true))
                     throw new BinderException("Invalid validator class: $valtype");
@@ -219,7 +219,7 @@ class Binder
 
             $fields[$name] = $field;
         }
-        return $field;
+        return $fields;
     }
 
     /**

@@ -45,10 +45,12 @@ final class FormTest extends TestCase
     public function setUp()
     {
         DI::startNewContext('test');
+        $this->nonce_hook = DI::getInjector()->getInstance(AddNonceToForm::class);
     }
 
     public function tearDown()
     {
+        $this->nonce_hook->unregister();
         DI::destroyContext('test');
     }
     
@@ -229,13 +231,13 @@ final class FormTest extends TestCase
         $this->assertFalse($form->isValid($req));
         $errors = $form->getErrors();
         $this->assertTrue(isset($errors['nonce']));
-        $this->assertcontains('Nonce was not submitted', $errors['nonce']['msg']);
+        $this->assertcontains('Nonce was not submitted', $errors['nonce'][0]['msg']);
 
         $post['_nonce'] = 'invalid';
         $this->assertFalse($form->isValid($req));
         $errors = $form->getErrors();
         $this->assertTrue(isset($errors['nonce']));
-        $this->assertcontains('Nonce was invalid', $errors['nonce']['msg']);
+        $this->assertcontains('Nonce was invalid', $errors['nonce'][0]['msg']);
     }
 
     public function testFormInvalidDataFailsValidation()
@@ -395,7 +397,11 @@ final class FormTest extends TestCase
         $form2->addField('test3', Type::STRING, 'text', 'test');
 
         $form->add($form2);
+        $GLOBALS['foobar'] = true;
         $form->prepare($req->session);
+        $nnc = $form['_nonce'];
+        $form->prepare($req->session);
+        $GLOBALS['foobar'] = false;
         $post['_nonce'] = $form['_nonce']->getValue();
         $this->assertTrue($form->isValid($req));
 
