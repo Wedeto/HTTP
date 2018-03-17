@@ -209,7 +209,7 @@ final class FormFieldTest extends TestCase
         $valid = $field->validate($params, $files);
         $this->assertFalse($valid);
         $errors = $field->getErrors();
-        $this->assertContains('Required field', FormField::formatErrorMessage($errors[0]));
+        $this->assertContains('Field required', FormField::formatErrorMessage($errors[0]));
         $this->assertNull($field->getValue());
     }
 

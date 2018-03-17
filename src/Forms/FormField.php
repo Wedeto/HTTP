@@ -447,6 +447,6 @@ class FormField implements FormElement
     {
         $msg = $error_message['msg'] ?? "";
         $context = $error_message['context'] ?? [];
-        return Logger::fillPlaceholders($msg, $context);
+        return WF::fillPlaceholders($msg, $context);
     }
 }
