@@ -49,6 +49,7 @@ class FormField implements FormElement
     protected $description = '';
 
     protected $errors = [];
+    protected $fixed_error = null;
 
     /**
      * Create a new form field
@@ -268,10 +269,30 @@ class FormField implements FormElement
      * Return the error messages produced during validation. Should be called
      * after validation failed, otherwise an non-relevant or empty array will be
      * returned.
+     *
+     * @return array List of errors. Empty when validation succeeded.
      */
     public function getErrors()
     {
+        if (!empty($this->fixed_error))
+            return count($this->errors) ? [$this->fixed_error] : [];
+
         return $this->errors;
+    }
+
+    /**
+     * Set the fixed error that is returned when validation fails. Overrides the
+     * errors from the validators themselves.
+     *
+     * @param array $msg The fixed error
+     * @return FormField Provides fluent interface
+     */
+    public function setFixedError(array $msg)
+    {
+        if (!isset($msg['msg']))
+            throw new InvalidArgumentException("Error message does not contain msg key");
+        $this->fixed_error = $msg;
+        return $this;
     }
 
     /**

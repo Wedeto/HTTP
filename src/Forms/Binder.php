@@ -29,6 +29,7 @@ use Wedeto\DB\Model;
 use Wedeto\DB\DAO;
 
 use Wedeto\Util\DocComment;
+use Wedeto\Util\DI\DI;
 use Wedeto\Util\Validation\Type;
 use Wedeto\Util\Validation\Validator;
 use Wedeto\Util\LoggerAwareStaticTrait;
@@ -142,17 +143,17 @@ class Binder
         if (!empty($classdoc))
         {
             $classdoc = new DocComment($classdoc);
-            foreach ($classdoc->getAnnotation('validator') as $validator)
+            foreach ($classdoc->getAnnotations('validator') as $validator)
             {
                 if (!is_a($validator, Validator::class, true))
                     throw new BinderException("Invalid validator class: $validator");
                 $validator = DI::getInjector()->getInstance($validator);
-                $form->add($validator);
+                $form->addFormValidator($validator);
             }
         }
 
         foreach ($additional_validators as $validator)
-            $form->add($validator);
+            $form->addFormValidator($validator);
 
         return $form;
     }
@@ -176,13 +177,14 @@ class Binder
                 continue;
 
             $annotations = new DocComment($comment);
-            if (!empty($annotations->getAnnotation("ignore")))
+            if (!empty($annotations->getAnnotations("ignore")))
                 continue;
 
-            $base_tp = $annotations->getAnnotationTokens("var")[0];
-            if (empty($base_tp))
-                continue;
+            $var = $annotations->getAnnotationTokens("var");
+            if (count($var) === 0 || empty($var[0]))
+                throw new BinderException("No type defined for $prop");
 
+            $base_tp = reset($var);
             $element_tp = $base_tp === "array" ? $annotations->getAnnotationFirst("element") : null;
             $search_type = $element_tp ?: $base_tp;
 
@@ -206,10 +208,7 @@ class Binder
 
             foreach ($annotations->getAnnotations('validator') as $valtype)
             {
-                if (!is_a($valtype, Validator::class, true))
-                    throw new BinderException("Invalid validator class: $valtype");
-
-                $instance = DI::getInjector()->getInstance($valtype);
+                $instance = $this->getValidatorInstance($valtype);
                 $field->addValidator($instance);
             }
 
@@ -217,9 +216,127 @@ class Binder
             foreach ($additional as $validator)
                 $field->addValidator($validator);
 
+            $error_override = $annotations->getAnnotation('error', true);
+            if (!empty($error_override))
+                $field->setFixedError(['msg' => $error_override]);
+
             $fields[$name] = $field;
         }
         return $fields;
+    }
+
+    /**
+     * Instantiate a validator from a comment
+     *
+     * @param string $annotation The annotation
+     * @return Validator The instantiated validator
+     */
+    protected function getValidatorInstance(string $annotation)
+    {
+        if (preg_match("/([a-zA-Z0-9_\\\\]+)\\((.*)\\)/", $annotation, $matches))
+        {
+            $classname = $matches[1];
+            $params = $matches[2];
+            $in_quote = false;
+            $out_quote = false;
+            $escaped = false;
+            $current_arg = '';
+
+            $args = [];
+
+            for ($i = 0; $i < strlen($params); ++$i)
+            {
+                $ch = substr($params, $i, 1);
+                if ($ch === '"')
+                {
+                    if ($in_quote)
+                    {
+                        if ($escaped)
+                        {
+                            $escaped = false;
+                            $current_arg = substr($current_arg, 0, -1) . '"';
+                        }
+                        else
+                        {
+                            $in_quote = false;
+                            $out_quote = true;
+                        }
+                    }
+                    else if ($out_quote)
+                    {
+                        throw new BinderException("Unexpected quote on $i in $params");
+                    }
+                    else
+                    {
+                        $in_quote = true;
+                    }
+                    continue;
+                }
+
+                if ($ch === '\\' && $in_quote)
+                {
+                    $escaped = true;
+                }
+                else if ($escaped)
+                {
+                    $escaped = false;
+                }
+
+                if (!$in_quote && ($ch === ' ' || $ch === "\t"))
+                    continue;
+
+                if (!$in_quote && $ch === ',')
+                {
+                    $args[] = $current_arg;
+                    $current_arg = '';
+                    $out_quote = false;
+                }
+                else
+                {
+                    $current_arg .= $ch;
+                }
+            }
+
+            if (!empty($current_arg))
+            {
+                $args[] = $current_arg;
+            }
+
+            if ($in_quote)
+            {
+                throw new BinderException("Invalid syntax - expected '\"'");
+            }
+        }
+        else
+        {
+            $classname = trim($annotation);
+            $args = [];
+        }
+
+        if (!class_exists($classname))
+            throw new BinderException("Validator class does not exist: $classname");
+
+        if (!is_a($classname, Validator::class, true))
+            throw new BinderException("Invalid validator class: $classname");
+
+        $refl = new ReflectionClass($classname);
+        $construct = $refl->getConstructor();
+        
+        $params = $construct->getParameters();
+        $param_names = [];
+        foreach ($params as $param)
+            $param_names[] = $param->getName();
+
+        if (count($args) !== count($param_names))
+        {
+            throw new BinderException(
+                "Invalid amount of arguments for validator constructor: " 
+                . count($args) . " given but " . count($param_names) . " required"
+            );
+        }
+
+        $args = array_combine($param_names, $args);
+        return DI::getInjector()->newInstance($classname, $args);
     }
 
     /**
@@ -229,7 +346,7 @@ class Binder
      * @param string $class The classname of the object to instantiate and fill
      * @return The new, filled object.
      */
-    public function bind(Form $form, string $class)
+    public function bind(Form $form, $class)
     {
         if (!((is_string($class) && class_exists($class)) || ($class instanceof ReflectionClass)))
             throw new BinderException("Provide a classname or a reflection class to bind");
@@ -255,7 +372,7 @@ class Binder
         foreach ($form as $key => $formelement)
         {
             if ($formelement instanceof Form)
-                throw new BinderException("Cannot bind nester forms");
+                throw new BinderException("Cannot bind nested forms");
 
             $this->bindValue($formelement, $refl, $instance);
         }
@@ -272,28 +389,19 @@ class Binder
     protected function bindValue(FormElement $element, ReflectionClass $refl, $instance)
     {
         $name = $element->getName();
+        if (substr($name, 0, 1) === "_")
+            return;
+
         $value = $element->getValue();
         $method_name = "set" . strtoupper(substr($name, 0, 1)) . substr($name, 1);
         if ($refl->hasMethod($method_name))
         {
             $setter = $refl->getMethod($method_name);
-            $params = $setters->getParameters();
+            $params = $setter->getParameters();
             if (count($params) !== 1)
                 throw new BinderException("Setter $method_name should take exactly one argument");
 
-            $param = reset($params);
-
-            if ($param->hasType())
-            {
-                // If the parameter has a type hint, make sure it fits
-                $transformedValue = $this->transform($param, $value);
-                $setter->invoke($instance, $transformedValue);
-            }
-            else
-            {
-                // Otherwise, there's nothing we can do except just set it
-                $setter->invoke($instance, $value);
-            }
+            $setter->invoke($instance, $value);
         }
         elseif ($refl->isSubclassOf(Model::class))
         {
