@@ -73,6 +73,14 @@ final class BinderTest extends TestCase
         $this->assertSame($form, $form->prepare($request->session, true));
         $this->assertTrue($form->isValid($request));
         $this->assertEquals([], $form->getErrors());
+
+        $instance = $binder->bind($form, MockForm::class);
+
+        $this->assertInstanceOf(MockForm::class, $instance);
+        $this->assertEquals('foo', $instance->name);
+        $this->assertEquals(30, $instance->age);
+        $this->assertInstanceOf(DateTime::class, $instance->date);
+        $this->assertEquals('2018-03-03', $instance->date->format('Y-m-d'));
     }
 }
 

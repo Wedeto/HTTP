@@ -259,6 +259,7 @@ class Binder
 
             $this->bindValue($formelement, $refl, $instance);
         }
+        return $instance;
     }
 
     /**
@@ -268,11 +269,11 @@ class Binder
      * @param ReflectionClass $refl The ReflectionClass of the object being set
      * @param object $instance The object being set
      */
-    protected function bindValue(FormElement $element, ReflectionClass $refl, object $instance)
+    protected function bindValue(FormElement $element, ReflectionClass $refl, $instance)
     {
         $name = $element->getName();
         $value = $element->getValue();
-        $method_name = "set" . strtoupper($name, 0, 1) . substr($name, 1);
+        $method_name = "set" . strtoupper(substr($name, 0, 1)) . substr($name, 1);
         if ($refl->hasMethod($method_name))
         {
             $setter = $refl->getMethod($method_name);
