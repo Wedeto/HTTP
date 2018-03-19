@@ -32,6 +32,7 @@ use Wedeto\Util\DocComment;
 use Wedeto\Util\DI\DI;
 use Wedeto\Util\Validation\Type;
 use Wedeto\Util\Validation\Validator;
+use Wedeto\Util\Validation\ValidationException;
 use Wedeto\Util\LoggerAwareStaticTrait;
 use Wedeto\DB\Exception\InvalidValueException;
 
@@ -57,16 +58,18 @@ class Binder
         if (!is_a($classname, Model::class, true))
             throw new \InvalidArgumentException("You must provide a valid Model class");
 
-        $columns = $dao->getColumns();
-
-        $form = new FormData($method, $classname);
+        $form = new Form($classname);
         $refl = new ReflectionClass($classname);
-
         $fields = $this->getAnnotatedFields($refl, []);
 
+        $columns = $dao->getColumns();
         foreach ($columns as $name => $coldef)
         {
             if (isset($fields[$name]))
+                continue;
+
+            // Ignore serial columns
+            if ($coldef->getSerial())
                 continue;
 
             $validator = function ($value) use ($classname, $coldef)

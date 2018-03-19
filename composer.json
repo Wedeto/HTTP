@@ -14,7 +14,7 @@
         "phpunit/phpunit": ">=6.1",
         "mikey179/vfsStream": "~1",
         "Wedeto/Log": "0.9.*",
-        "Wedeto/DB": "0.9.16",
+        "Wedeto/DB": "0.9.18",
         "ext-xdebug": ">=2.5.1"
     },
     "autoload": {

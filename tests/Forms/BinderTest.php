@@ -39,7 +39,15 @@ use Wedeto\HTTP\Session;
 use Wedeto\HTTP\URL;
 use Wedeto\HTTP\Forms\Transformers\DateTransformer;
 
+use Wedeto\DB\DAO;
+use Wedeto\DB\Model;
+use Wedeto\DB\Schema\Schema;
+use Wedeto\DB\Schema\Column;
+
 use DateTime;
+
+/** Load required mock forms */
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'MockBaseForms.php';
 
 /**
  * @covers Wedeto\HTTP\Forms\Binder
@@ -340,214 +348,41 @@ final class BinderTest extends TestCase
         $this->assertInstanceOf(MockForm13::class, $instance);
         $this->assertEquals('--bogustext--', $instance->bogus);
     }
-}
 
-class MockForm extends BaseForm
-{
-    /**
-     * @var string Person name
-     */
-    public $name;
-
-    /**
-     * @var int Age
-     */
-    public $age;
-
-    /**
-     * @var DateTime date of birth
-     */
-    public $date;
-}
-
-class MockForm2 extends BaseForm
-{
-    /**
-     * @var string Person name
-     * @validator Wedeto\HTTP\Forms\Validation\MinLength(8)
-     */
-    public $name;
-
-    /**
-     * @var int Age
-     */
-    public $age;
-
-    /**
-     * @var DateTime date of birth
-     */
-    public $date;
-
-    /**
-     * @var string Zip code
-     * @validator Wedeto\HTTP\Forms\Validation\Pattern("/[0-9]{4}[A-Z]{2}/")
-     */
-    public $zipcode;
-}
-
-class MockForm3 extends BaseForm
-{
-    /**
-     * @var string Person name
-     * @validator Wedeto\HTTP\Forms\Validation\MinLength("8)
-     */
-    public $name;
-
-    /**
-     * @var int Age
-     */
-    public $age;
-
-    /**
-     * @var DateTime date of birth
-     */
-    public $date;
-}
-
-class MockForm4 extends BaseForm
-{
-    /**
-     * @var string Requires a quote
-     * @validator Wedeto\HTTP\Forms\Validation\Pattern("/.*\".{3}/")
-     * @error The word needs to contain a quote
-     */
-    public $word;
-
-    /**
-     * @var int Age
-     * @validator Wedeto\HTTP\Forms\Validation\Between(10, 50)
-     */
-    public $age;
-}
-
-/**
- * @validator Wedeto\HTTP\Forms\MockFormValidator
- */
-class MockForm5 extends BaseForm
-{
-    /**
-     * @var string some
-     */
-    public $word;
-
-    public $ignored;
-
-    /**
-     * @var string this one should be ignored too
-     * @ignore
-     */
-    public $ignored2;
-
-    public static function listFormValidators()
+    public function testModelForm()
     {
-        return [new Validator(Validator::VALIDATE_CUSTOM, ['custom' => function ($form) {
-            throw new ValidationException("Invalid foo");
-        }])];
-    }
+        $binder = new Binder();
 
-    public static function listFieldValidators()
-    {
-        return ['word' => [new Validation\Pattern('/g/')]];
+        $dao_mock = $this->prophesize(DAO::class);
+        $dao = $dao_mock->reveal();
+
+        $dao_mock->getColumns()->willReturn([
+            'id' => new Column\TSerial('id'),
+            'name' => new Column\TVarchar('name', 64),
+            'age' => new Column\TInt('age')
+        ]);
+        $form = $binder->createFormForModel(MockModelForm::class, $dao);
+
+        $this->assertFalse(isset($form['id']));
+        $this->assertTrue(isset($form['name']));
+        $this->assertTrue(isset($form['age']));
+
+        $data = ['name' => 'foobar', 'age' => 33];
+        $none = [];
+        $request = new Request($none, $data, $none, $none, $none);
+        
+        $this->assertTrue($form->isValid($request));
+
+        $data['age'] = 'bar';
+        $this->assertFalse($form->isValid($request));
+
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['age']));
+        $this->assertEquals('Integral value required', FormField::formatErrorMessage($errors['age'][0]));
     }
 }
 
-class MockFormValidator extends Validator
+class MockModelForm extends Model
 {
-    public function __construct()
-    { }
-
-    public function validate($form, &$filtered = null)
-    {
-        $val = $form['word']->getValue();
-        if (!preg_match('/h/', $val))
-        {
-            $this->error = ['msg' => 'missing h'];
-            return false;
-        }
-
-        return true;
-    }
-}
-
-/**
- * @validator Wedeto\HTTP\Forms\NonExistingValidator
- */
-class MockForm6 extends BaseForm
-{
-    /**
-     * @var string some
-     */
-    public $word;
-}
-
-class MockForm7 extends BaseForm
-{
-    /**
-     * @error Custom error
-     */
-    public $word;
-}
-
-class MockForm8 extends BaseForm
-{
-    /**
-     * @var string word
-     * @validator Validator("Invalid""String", 3)
-     */
-    public $word;
-}
-
-class MockForm9 extends BaseForm
-{
-    /**
-     * @var string word
-     * @validator Wedeto\HTTP\Forms\Validation\Pattern("/Valid\sString/")
-     */
-    public $word;
-
-    /**
-     * @var string email
-     * @validator Wedeto\HTTP\Forms\Validation\Email
-     */
-    public $email;
-}
-
-class MockForm10 extends BaseForm
-{
-    /**
-     * @var string word
-     * @validator Wedeto\HTTP\Forms\Validation\NonExisting
-     */
-    public $word;
-}
-
-class MockForm11 extends BaseForm
-{
-    /**
-     * @var string bogus
-     * @validator Wedeto\HTTP\Forms\FormField
-     */
-    public $bogus;
-}
-
-class MockForm12 extends BaseForm
-{
-    /**
-     * @var string bogus
-     * @validator Wedeto\HTTP\Forms\Validation\MinLength(3, 4, 5)
-     */
-    public $bogus;
-}
-
-class MockForm13 extends BaseForm
-{
-    /**
-     * @var string
-     */
-    public $bogus;
-
-    public function setBogus(string $value)
-    {
-        $this->bogus = "--" . $value . "--";
-    }
+    public static $_table = "MockTable";
 }

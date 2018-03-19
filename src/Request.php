@@ -245,5 +245,4 @@ class Request
     {
         return PHP_SAPI === "cli";
     }
-
 }
