@@ -32,8 +32,8 @@ use Wedeto\HTTP\Nonce;
 use Wedeto\Util\Validation\Type;
 
 /**
- * A class that hooks into nonce generate and form validation to add a nonce to 
- * every form submitted.
+ * A class that hooks into form preparation and validation to add a nonce to
+ * every form created and submitted.
  */
 class AddNonceToForm
 {
@@ -83,26 +83,17 @@ class AddNonceToForm
      */
     public function hookPrepareForm(Dictionary $params)
     {
-        try
+        $session = $params['session'];
+        $form = $params['form'];
+        if ($session !== null)
         {
-            $session = $params['session'];
-            $form = $params['form'];
-            if ($session !== null)
+            $nonce_name = Nonce::getParameterName();
+            if (!isset($form[$nonce_name]))
             {
-                $nonce_name = Nonce::getParameterName();
-                if (!isset($form[$nonce_name]))
-                {
-                    $context = [];
-                    $nonce = Nonce::getNonce($form->getName(), $session, $context);
-                    $form->add(new FormField($nonce_name, Type::STRING, "hidden", $nonce));
-                }
+                $context = [];
+                $nonce = Nonce::getNonce($form->getName(), $session, $context);
+                $form->add(new FormField($nonce_name, Type::STRING, "hidden", $nonce));
             }
-        }
-        catch (\Throwable $e)
-        {
-            echo "EXCEPTION!\n";
-            WF::debug($e);
-            throw $e;
         }
     }
 
@@ -118,9 +109,10 @@ class AddNonceToForm
         $arguments = $params['arguments'];
 
         $result = Nonce::validateNonce($form->getName(), $request->session, $arguments);
+        $nonce_name = Nonce::getParameterName();
         if ($result === null)
         {
-            $params['errors'] = ['nonce' => [[
+            $params['errors'] = [$nonce_name => [[
                 'msg' => 'Nonce was not submitted for form {form}',
                 'context' => ['form' => $form->getName()]
             ]]];
@@ -128,7 +120,7 @@ class AddNonceToForm
         }
         elseif ($result === false)
         {
-            $params['errors'] = ['nonce' => [[
+            $params['errors'] = [$nonce_name => [[
                 'msg' => 'Nonce was invalid for form {form}',
                 'context' => ['form' => $form->getName()] 
             ]]];

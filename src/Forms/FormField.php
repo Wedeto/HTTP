@@ -255,10 +255,14 @@ class FormField implements FormElement
 
         foreach ($this->validators as $validator)
         {
-            $result = $validator->validate($value);
+            $result = $validator->validate($this->value, $value);
             if (!$result)
             {
                 $this->errors[] = $validator->getErrorMessage($value);
+            }
+            else
+            {
+                $this->value = $value;
             }
         }
 

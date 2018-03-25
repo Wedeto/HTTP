@@ -56,7 +56,7 @@ class Binder
     public function createFormForModel(string $classname, DAO $dao)
     {
         if (!is_a($classname, Model::class, true))
-            throw new \InvalidArgumentException("You must provide a valid Model class");
+            throw new \InvalidArgumentException("Not a valid Model class provided");
 
         $form = new Form($classname);
         $refl = new ReflectionClass($classname);
@@ -119,7 +119,7 @@ class Binder
     public function createFormForObject(string $formclass)
     { 
         if (!is_a($formclass, BaseForm::class, true))
-            throw new \InvalidArgumentException("You must provide a subclass of BaseForm");
+            throw new \InvalidArgumentException("Not a valid BaseForm class provided");
 
         $form = new Form($formclass);
         $refl = new \ReflectionClass($formclass);
@@ -409,7 +409,7 @@ class Binder
         elseif ($refl->isSubclassOf(Model::class))
         {
             // Model provides a setField method that should be able to set all parameters
-            $instance->setField($key, $formelement->getValue());
+            $instance->setField($name, $element->getValue());
         }
         else
         {

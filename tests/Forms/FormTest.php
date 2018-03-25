@@ -230,14 +230,14 @@ final class FormTest extends TestCase
         $req->startSession(new URL('http://www.wedeto.nl/'), $cfg);
         $this->assertFalse($form->isValid($req));
         $errors = $form->getErrors();
-        $this->assertTrue(isset($errors['nonce']));
-        $this->assertcontains('Nonce was not submitted', $errors['nonce'][0]['msg']);
+        $this->assertTrue(isset($errors['_nonce']));
+        $this->assertcontains('Nonce was not submitted', $errors['_nonce'][0]['msg']);
 
         $post['_nonce'] = 'invalid';
         $this->assertFalse($form->isValid($req));
         $errors = $form->getErrors();
-        $this->assertTrue(isset($errors['nonce']));
-        $this->assertcontains('Nonce was invalid', $errors['nonce'][0]['msg']);
+        $this->assertTrue(isset($errors['_nonce']));
+        $this->assertcontains('Nonce was invalid', $errors['_nonce'][0]['msg']);
     }
 
     public function testFormInvalidDataFailsValidation()

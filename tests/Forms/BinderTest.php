@@ -39,6 +39,7 @@ use Wedeto\HTTP\Session;
 use Wedeto\HTTP\URL;
 use Wedeto\HTTP\Forms\Transformers\DateTransformer;
 
+use Wedeto\DB\DB;
 use Wedeto\DB\DAO;
 use Wedeto\DB\Model;
 use Wedeto\DB\Schema\Schema;
@@ -96,7 +97,7 @@ final class BinderTest extends TestCase
     {
         $binder = new Binder();
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("You must provide a subclass of BaseForm");
+        $this->expectExceptionMessage("Not a valid BaseForm class provided");
         $binder->createFormForObject(\stdClass::class);
     }
 
@@ -357,9 +358,9 @@ final class BinderTest extends TestCase
         $dao = $dao_mock->reveal();
 
         $dao_mock->getColumns()->willReturn([
-            'id' => new Column\TSerial('id'),
-            'name' => new Column\TVarchar('name', 64),
-            'age' => new Column\TInt('age')
+            'id' => new Column\Serial('id'),
+            'name' => new Column\Varchar('name', 64),
+            'age' => new Column\Integer('age')
         ]);
         $form = $binder->createFormForModel(MockModelForm::class, $dao);
 
@@ -380,9 +381,85 @@ final class BinderTest extends TestCase
         $this->assertTrue(isset($errors['age']));
         $this->assertEquals('Integral value required', FormField::formatErrorMessage($errors['age'][0]));
     }
+
+    public function testModelFormWithAnnotations()
+    {
+        $binder = new Binder();
+
+        $dao_mock = $this->prophesize(DAO::class);
+        $dao = $dao_mock->reveal();
+
+        $dao_mock->getColumns()->willReturn([
+            'id' => new Column\Serial('id'),
+            'name' => new Column\Varchar('name', 64),
+            'age' => new Column\Integer('age')
+        ]);
+        $form = $binder->createFormForModel(MockModelForm2::class, $dao);
+
+        $this->assertFalse(isset($form['id']));
+        $this->assertTrue(isset($form['name']));
+        $this->assertTrue(isset($form['age']));
+
+        $data = ['name' => 'foobar', 'age' => 33];
+        $none = [];
+
+        $request = new Request($none, $data, $none, $none, $none);
+        $this->assertFalse($form->isValid($request));
+
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['age']));
+        $msg = FormField::formatErrorMessage($errors['age'][0]);
+        $this->assertEquals('Integral value between 10 and 30 is required', $msg);
+
+        $data['age'] = 'bar';
+        $this->assertFalse($form->isValid($request));
+        $errors = $form->getErrors();
+        $this->assertTrue(isset($errors['age']));
+        $this->assertEquals('Integral value required', FormField::formatErrorMessage($errors['age'][0]));
+
+        $data['age'] = '25';
+
+        $db_mock = $this->prophesize(DB::class);
+        $db = $db_mock->reveal();
+        $db_mock->getDAO(MockModelForm2::class)->willReturn($dao);
+        DI::getInjector()->setInstance(DB::class, $db);
+
+        $dao_mock->getPrimaryKey()->willReturn([
+            'id' => new Column\Serial('id')
+        ]);
+
+        $this->assertTrue($form->isValid($request));
+        $inst = $binder->bind($form, MockModelForm2::class);
+        $this->assertInstanceOf(Model::class, $inst);
+        $this->assertInstanceOf(MockModelForm2::class, $inst);
+        $this->assertEquals(25, $inst->age);
+        $this->assertEquals('foobar', $inst->name);
+    }
+
+    public function testModelFormWithInvalidClassThrowsException()
+    {
+        $binder = new Binder();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Not a valid Model class");
+
+        $dao_mock = $this->prophesize(DAO::class);
+        $dao = $dao_mock->reveal();
+        $binder->createFormForModel(\Stdclass::class, $dao);
+    }
 }
 
 class MockModelForm extends Model
 {
     public static $_table = "MockTable";
+}
+
+class MockModelForm2 extends Model
+{
+    public static $_table = "MockTable";
+
+    /**
+     * @var int age of person
+     * @validator Wedeto\HTTP\Forms\Validation\Between(10, 30)
+     */
+    public $age;
 }
