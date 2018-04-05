@@ -32,10 +32,15 @@ use Wedeto\Util\Dictionary;
 /**
  * Request encapsulates a HTTP request, containing all data transferrred to the
  * script by the client and the webserver.
+ * 
+ * Instruct the injector how to create this object:
+ * @generator createFromGlobals
  */
 class Request
 {
     use LoggerAwareStaticTrait;
+    
+    const WDI_REUSABLE = true;
 
     /** The default language used for responses */
     private static $default_language = 'en';

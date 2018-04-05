@@ -28,6 +28,7 @@ namespace Wedeto\HTTP;
 use PHPUnit\Framework\TestCase;
 
 use Wedeto\Util\Dictionary;
+use Wedeto\Util\DI\DI;
 use Wedeto\Util\Date;
 use Wedeto\HTTP\Response\RedirectRequest;
 
@@ -229,5 +230,13 @@ final class RequestTest extends TestCase
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Property does not exist: foo");
         $foo = $req->foo;
+    }
+
+    public function testGeneratingThroughDIWorks()
+    {
+        DI::startNewContext('request');
+        $req = DI::getInjector()->getInstance(Request::class);
+        $this->assertInstanceOf(Request::class, $req);
+        DI::destroyContext('request');
     }
 }
