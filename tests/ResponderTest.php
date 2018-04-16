@@ -3,7 +3,7 @@
 This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
-Copyright 2017, Egbert van der Wal
+Copyright 2017-2018, Egbert van der Wal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -32,7 +32,7 @@ use Wedeto\Log\Logger;
 use Wedeto\Log\LoggerFactory;
 use Wedeto\Log\Writer\MemLogWriter;
 
-use Wedeto\HTTP\Response\Response;
+use Wedeto\HTTP\Response;
 use Wedeto\HTTP\Response\StringResponse;
 use Wedeto\HTTP\Response\Error;
 
@@ -100,10 +100,13 @@ final class ResponderTest extends TestCase
 
     public function testSetCachePolicy()
     {
-        $response = new StringResponse("foobar");
+        $content = new StringResponse("foobar");
+
+        $response = new Response();
+        $response->setContent($content);
         $cp = new CachePolicy;
         $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC);
-        $response->setCachePolicy($cp);
+        $content->setCachePolicy($cp);
         $this->responder->setResponse($response);
 
         $this->assertEquals($cp, $this->responder->getCachePolicy());
@@ -126,7 +129,7 @@ final class ResponderTest extends TestCase
         catch (MockResponseResponse $mock_response)
         {
             $actual = $mock_response->getPrevious();
-            $this->assertEquals($response, $actual);
+            $this->assertEquals($content, $actual);
         }
     }
 
@@ -184,13 +187,15 @@ final class ResponderTest extends TestCase
 
     public function testSetResponse()
     {
-        $resp = new StringResponse('foobar', 'text/plain');
+        $content = new StringResponse('foobar', 'text/plain');
+        $response = new Response;
+        $response->setContent($content);
 
-        $this->responder->setResponse($resp);
+        $this->responder->setResponse($response);
 
         $actual = $this->responder->getResponse();
-        $this->assertInstanceOf(StringResponse::class, $resp);
-        $this->assertEquals($resp, $actual);
+        $this->assertInstanceOf(StringResponse::class, $response->getContent());
+        $this->assertEquals($response, $actual);
     }
 
     public function testRespond()
@@ -199,7 +204,9 @@ final class ResponderTest extends TestCase
         $this->responder = new MockResponder($this->request);
 
         $thr = new \InvalidArgumentException('foobar');
-        $response = new StringResponse(json_encode(['foo' => 'bar']), 'application/json');
+        $content = new StringResponse(json_encode(['foo' => 'bar']), 'application/json');
+        $response = new Response;
+        $response->setContent($content);
         $this->responder->setResponse($response);
 
         // Avoid responder closing PHPUnits ob_buffer
@@ -212,7 +219,7 @@ final class ResponderTest extends TestCase
         {
             $this->assertEquals('application/json', $mock_response->mime);
             $actual = $mock_response->getPrevious();
-            $this->assertEquals(spl_object_hash($response), spl_object_hash($actual));
+            $this->assertEquals(spl_object_hash($content), spl_object_hash($actual));
         }
     }
 
@@ -262,7 +269,9 @@ final class ResponderTest extends TestCase
     {
         $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
-        $resp = new MockResponseResponse(array(), new RuntimeException('foo'));
+        $content = new MockResponseResponse(array(), new RuntimeException('foo'));
+        $resp = new Response;
+        $resp->setContent($content);
         $this->responder->setResponse($resp);
 
         // Avoid responder closing PHPUnits ob_buffer
@@ -281,8 +290,10 @@ final class ResponderTest extends TestCase
     {
         $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
-        $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
-        $resp->fail_transform = true;
+        $content = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
+        $content->fail_transform = true;
+        $resp = new Response;
+        $resp->setContent($content);
         $this->responder->setResponse($resp);
 
         // Avoid responder closing PHPUnits ob_buffer
@@ -301,7 +312,9 @@ final class ResponderTest extends TestCase
     {
         $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
-        $resp = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
+        $content = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
+        $resp = new Response;
+        $resp->setContent($content);
         $this->responder->setResponse($resp);
 
         // Avoid responder closing PHPUnits ob_buffer
@@ -332,10 +345,12 @@ final class ResponderTest extends TestCase
      */
     public function testRespondDoOutput()
     {
-        $response = new StringResponse("Example output", 'text/html');
+        $content = new StringResponse("Example output", 'text/html');
         $cp = new CachePolicy;
         $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC)->setExpiresInSeconds(3600);
-        $response->setCachePolicy($cp);
+        $content->setCachePolicy($cp);
+        $response = new Response;
+        $response->setContent($content);
         $this->responder->setResponse($response);
 
         $expected_headers = $response->getHeaders();
@@ -345,49 +360,51 @@ final class ResponderTest extends TestCase
         $cookie = new Cookie('foo', 'bar');
         $this->responder->addCookie($cookie);
 
+        $this->assertEquals(1, ob_get_level());
         ob_start(); // Catch output
+        $this->assertEquals(2, ob_get_level());
         $this->responder->setTargetOutputBufferLevel(2);
-        try
+
+        $this->responder->respond();
+
+        $output = ob_get_contents();
+        $this->assertEquals(2, ob_get_level());
+        ob_end_clean();
+        $this->assertEquals(1, ob_get_level());
+        $this->assertEquals('Example output', $output);
+
+        $headers = xdebug_get_headers();
+
+        $parsed = [];
+        $cookies = [];
+        foreach ($headers as $h)
         {
-            $this->responder->respond();
+            $p = strpos($h, ':');
+            if ($p === false)
+                continue;
+
+            $key = trim(substr($h, 0, $p));
+            $val = trim(substr($h, $p + 1));
+            if ($key !== 'Set-Cookie')
+                $parsed[$key] = $val;
+            else
+                $cookies[] = $val;
         }
-        catch (\RuntimeException $e)
-        {
-            $output = ob_get_contents();
-            ob_end_clean();
-            $this->assertEquals('Example output', $output);
 
-            $this->assertContains("Die request", $e->getMessage());
-            $headers = xdebug_get_headers();
-
-            $parsed = [];
-            $cookies = [];
-            foreach ($headers as $h)
-            {
-                $p = strpos($h, ':');
-                if ($p === false)
-                    continue;
-
-                $key = trim(substr($h, 0, $p));
-                $val = trim(substr($h, $p + 1));
-                if ($key !== 'Set-Cookie')
-                    $parsed[$key] = $val;
-                else
-                    $cookies[] = $val;
-            }
-
-            $this->assertEquals($expected_headers, $parsed);
-            $this->assertEquals(1, count($cookies));
-            $this->assertContains('foo=bar', $cookies[0]);
-        }
+        $this->assertEquals($expected_headers, $parsed);
+        $this->assertEquals(1, count($cookies));
+        $this->assertContains('foo=bar', $cookies[0]);
     }
 
     public function testRepondDoOutputWithoutHeaders()
     {
-        $response = new StringResponse("Example output", 'text/html');
+        $content = new StringResponse("Example output", 'text/html');
         $cp = new CachePolicy;
         $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC)->setExpiresInSeconds(3600);
-        $response->setCachePolicy($cp);
+        $content->setCachePolicy($cp);
+
+        $response = new Response;
+        $response->setContent($content);
         $this->responder->setResponse($response);
 
         $logger = Logger::getLogger(Responder::class);
@@ -398,26 +415,22 @@ final class ResponderTest extends TestCase
         ob_start(); // Catch output
         $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(2));
         $this->assertEquals(2, $this->responder->getTargetOutputBufferLevel());
-        try
-        {
-            $this->responder->respond();
-        }
-        catch (\RuntimeException $e)
-        {
-            $output = ob_get_contents();
-            ob_end_clean();
-            $this->assertEquals('Example output', $output);
-            $this->assertContains("Die request", $e->getMessage());
 
-            $log = $memlogger->getLog();
-            $this->assertEquals(2, count($log));
-            $this->assertContains("Headers were already sent when Responder", $log[0]);
-            $this->assertContains("OK", $log[1]);
-        }
+        $this->responder->respond();
+
+        $output = ob_get_contents();
+        ob_end_clean();
+        $this->assertEquals(1, ob_get_level());
+        $this->assertEquals('Example output', $output);
+
+        $log = $memlogger->getLog();
+        $this->assertEquals(2, count($log));
+        $this->assertContains("Headers were already sent when Responder", $log[0]);
+        $this->assertContains("OK", $log[1]);
     }
 }
 
-class MockResponseResponse extends Response
+class MockResponseResponse extends Response\Response
 {
     public $mime;
     public $fail_transform = false;
@@ -450,6 +463,6 @@ class MockResponder extends Responder
 {
     protected function doOutput(string $mime)
     {
-        throw new MockResponseResponse($mime, $this->response);
+        throw new MockResponseResponse($mime, $this->response->getContent());
     }
 }

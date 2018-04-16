@@ -29,13 +29,12 @@ use Wedeto\Util\LoggerAwareStaticTrait;
 use Wedeto\Util\Hook;
 use Wedeto\IO\FileType;
 
-use Wedeto\HTTP\Response\Response;
 use Wedeto\HTTP\Response\Error;
 
 /**
  * Create and output a response
  */
-class Responder
+class Responder implements Processor
 {
     use LoggerAwareStaticTrait;
 
@@ -70,6 +69,19 @@ class Responder
         $this->request = $request;
     }
 
+    /**
+     * Implement the Processor interface.
+     *
+     * @param Wedeto\HTTP\Request $request The request answered
+     * @param Wedeto\HTTP\Response $response The response to the request
+     */
+    public function process(Request $request, Response $response)
+    {
+        $this->setRequest($request);
+        $this->setResponse($response);
+        $this->respond();
+    }
+    
     /**
      * @return Wedeto\HTTP\Request The HTTP Request instance
      */
@@ -121,7 +133,7 @@ class Responder
     public function setResponse(Response $response)
     {
         $this->response = $response;
-        $cp = $response->getCachePolicy();
+        $cp = $response->getContent()->getCachePolicy();
         if ($cp !== null)
             $this->setCachePolicy($cp);
 
@@ -252,7 +264,7 @@ class Responder
             }
         }
     }
-    
+
     /** 
      * Prepare the output before sending it, run hooks, collect headers and
      * finally call doRespond which produces the output.
@@ -261,13 +273,17 @@ class Responder
     {
         // Make sure there always is a response
         if (null === $this->response)
-            $this->response = new Error(500, "No output produced");
+        {
+            $this->response = new Response;
+            $this->response->setcontent(new Error(500, "No output produced"));
+        }
         
         // Close and log all script output that hasn't been cleaned yet
         $this->endAllOutputBuffers($this->target_ob_level);
 
         // Add Content-Type mime header
-        $mime = $this->response->getMimeTypes();
+        $response = $this->response->getContent();
+        $mime = $response->getMimeTypes();
         if (empty($mime))
         {
             $mime = Request::cli() ? "text/plain" : "text/html";
@@ -290,7 +306,7 @@ class Responder
         if (empty($mime) || !$this->request->accepts($mime))
         {
             $mime = 'text/html';
-            $this->response = new Error(406, "Not Acceptable", 'No acceptable response can be offered');
+            $this->response->setContent(new Error(406, "Not Acceptable", 'No acceptable response can be offered'));
         }
 
         // Execute hooks
@@ -315,7 +331,7 @@ class Responder
         $this->setHeader('Content-Type', $mime_charset);
 
         // Add headers from response to the final response
-        foreach ($this->response->getHeaders() as $key => $value)
+        foreach ($this->response->getAllHeaders() as $key => $value)
             $this->setHeader($key, $value);
 
         if ($this->cache_policy !== null)
@@ -325,7 +341,7 @@ class Responder
         }
         
         // Store the response code
-        $this->setResponseCode($this->response->getStatusCode());
+        $this->setResponseCode($response->getStatusCode());
 
         // All preparational work is done, time to send stuff to the client
         $this->doOutput($mime);
@@ -367,17 +383,10 @@ class Responder
             self::$logger->critical('Headers were already sent when Responder wants to send them');
 
         // Perform output
-        $this->response->output($mime);
+        $this->response->getContent()->output($mime);
 
         // We're done
         $desc = StatusCode::description($this->response_code);
         self::$logger->info("[{0} {1}] {2}", [$this->response_code, $desc, $this->request->url]);
-        $this->die();
-    }
-        
-    protected function die()
-    {
-        if (!defined('WEDETO_TEST') || WEDETO_TEST !== 1) die();
-        throw new \RuntimeException("Die request");
     }
 }
