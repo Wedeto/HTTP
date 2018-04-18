@@ -26,9 +26,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace Wedeto\HTTP;
 
 /**
- * A HTTP response. Contains the headers, the cookies and the content.
+ * A HTTP result. Contains the headers, the cookies and the response.
  */
-class Response
+class Result
 {
     /** The cookies that will be sent to the client */
     private $cookies = [];
@@ -36,11 +36,14 @@ class Response
     /** The headers that will be sent to the client */
     private $headers = [];
 
-    /** The body */
-    private $content;
+    /** The cache policy */
+    private $cache_policy = null;
+
+    /** The response */
+    private $response;
 
     /**
-     * Set a header on the response
+     * Set a header on the result
      * @param string $header The name of the header. Will be normalized
      * @param scalar $value The value for the header.
      * @return $this Provides fluent interface
@@ -50,7 +53,7 @@ class Response
         if (!is_scalar($value))
             throw new \InvalidArgumentException("Value should be a scalar");
 
-        $header = static::normalizeHeader($name);
+        $header = static::normalizeHeader($header);
         $this->headers[$header] = $value;
         return $this;
     }
@@ -81,7 +84,7 @@ class Response
         for ($i = 0; $i < strlen($name); ++$i)
         {
             // Add character
-            $ch = substr($i, $i, 1);
+            $ch = substr($name, $i, 1);
             $op .= $uc ? strtoupper($ch) : strtolower($ch);
 
             // Upper case follows every dash
@@ -97,7 +100,7 @@ class Response
      */
     public function hasHeader($header)
     {
-        return isset($this->headers[static::normalizeHeader[$header]]);
+        return isset($this->headers[static::normalizeHeader($header)]);
     }
 
     /**
@@ -112,7 +115,7 @@ class Response
     }
 
     /**
-     * Add a cookie to the Response
+     * Add a cookie to the Result
      * @param Wedeto\HTTP\Cookie $cookie The cookie to add
      * @return $this Provides fluent interface
      */
@@ -123,7 +126,7 @@ class Response
     }
 
     /**
-     * Delete a cookie from the response
+     * Delete a cookie from the result
      * @param string $name The name of the cookie
      * @return $this Provides fluent interface
      */
@@ -131,6 +134,17 @@ class Response
     {
         unset($this->cookies[$name]);
         return $this;
+    }
+
+    /**
+     * Check if a cookie with the same has been set.
+     *
+     * @param string $name The name of the cookie
+     * @return bool True if the cookie is present, false if not
+     */
+    public function hasCookie(string $name)
+    {
+        return isset($this->cookies[$name]);
     }
 
     /**
@@ -144,23 +158,31 @@ class Response
     }
 
     /**
-     * Set the content of the Response
+     * @return array all the cookies set for the result
+     */
+    public function getCookies()
+    {
+        return $this->cookies;
+    }
+
+    /**
+     * Set the response of the Result
      *
      * @param Wedeto\HTTP\Response\Response $response The response to set
      * @return $this Provides fluent interface
      */
-    public function setContent(Response\Response $response)
+    public function setResponse(Response\Response $response)
     {
-        $this->content = $response;
+        $this->response = $response;
         return $this;
     }
 
     /**
-     * @return Wedeto\HTTP\Response\Response The content of the response
+     * @return Wedeto\HTTP\Response\Response The response of the result
      */
-    public function getContent()
+    public function getResponse()
     {
-        return $this->content;
+        return $this->response;
     }
 
     /**
@@ -172,18 +194,57 @@ class Response
     }
 
     /**
-     * @return array The list of name -> value header mappings, including headers from the content.
+     * Set the cache policy for this result. This will be used if the response does
+     * not set a cache policy as that will always override the cache policy on the
+     * result.
+     *
+     * @return CachePolicy The cache policy
+     */
+    public function setCachePolicy(CachePolicy $policy)
+    {
+        $this->cache_policy = $policy;
+        return $this;
+    }
+
+    /**
+     * Returns the cache policy for this result. If the response has a cache policy,
+     * it is used. Otherwise, any cache policy set on the result itself is used.
+     *
+     * @return CachePolicy The cache policy
+     */
+    public function getCachePolicy()
+    {
+        if (!empty($this->response))
+        {
+            $policy = $this->response->getCachePolicy();
+            if (!empty($policy))
+                return $policy;
+        }
+        return $this->cache_policy;
+    }
+
+    /**
+     * @return array The list of name -> value header mappings, including headers from the response,
+     * and headers from the cache policy.
      */
     public function getAllHeaders()
     {
         $headers = $this->headers;
-        if (!empty($this->content))
+        if (!empty($this->response))
         {
-            foreach ($this->content->getHeaders() as $key => $value)
+            foreach ($this->response->getHeaders() as $key => $value)
             {
                 $headers[$key] = $value;
             }
         }
+
+        $cp = $this->getCachePolicy();
+        if (!empty($cp))
+        {
+            foreach ($cp->getHeaders() as $key => $value)
+                $headers[$key] = $value;
+        }
+
         return $headers;
     }
 }

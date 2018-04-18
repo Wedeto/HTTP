@@ -27,10 +27,10 @@ namespace Wedeto\HTTP;
 
 /**
  * The Processor interface defines parts of a response pipeline.
- * Each processor receives the Request and the preliminary response,
+ * Each processor receives the Request and the preliminary result,
  * and can then modify the request and/or the response.
  */
 interface Processor
 {
-    public function process(Request $request, Response $response);
+    public function process(Request $request, Result $result);
 }

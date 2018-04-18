@@ -102,6 +102,48 @@ final class ProcessChainTest extends TestCase
         $this->assertEquals($start + 2, $mock1->my_sequence);
         $this->assertEquals($start + 1, $mock2->my_sequence);
         $this->assertEquals($start + 3, $mock3->my_sequence);
+
+        $proc = $chain->getProcessors(ProcessChain::STAGE_FILTER);
+        $this->assertEquals(2, count($proc));
+        $this->assertSame($mock2, $proc[0]);
+        $this->assertSame($mock1, $proc[1]);
+
+        $proc = $chain->getProcessors(ProcessChain::STAGE_PROCESS);
+        $this->assertEquals(1, count($proc));
+        $this->assertSame($mock3, $proc[0]);
+    }
+
+    public function testChainRunInOrderOfPrecedenceWithRepeatedPrecedenceInOrderOfAdding()
+    {
+        $chain = new ProcessChain();
+
+        $mock1 = new MockProcessor();
+        $mock2 = new MockProcessor();
+        $mock3 = new MockProcessor();
+        $mock4 = new MockProcessor();
+
+        $chain->addFilter($mock1, 10);
+        $chain->addFilter($mock4, 5);
+        $chain->addFilter($mock2, 5);
+        $chain->addProcessor($mock3);
+
+        $start = MockProcessor::$seq;
+        $chain->process($this->request);
+
+        $this->assertEquals($start + 3, $mock1->my_sequence);
+        $this->assertEquals($start + 2, $mock2->my_sequence);
+        $this->assertEquals($start + 4, $mock3->my_sequence);
+        $this->assertEquals($start + 1, $mock4->my_sequence);
+
+        $proc = $chain->getProcessors(ProcessChain::STAGE_FILTER);
+        $this->assertEquals(3, count($proc));
+        $this->assertSame($mock4, $proc[0]);
+        $this->assertSame($mock2, $proc[1]);
+        $this->assertSame($mock1, $proc[2]);
+
+        $proc = $chain->getProcessors(ProcessChain::STAGE_PROCESS);
+        $this->assertEquals(1, count($proc));
+        $this->assertSame($mock3, $proc[0]);
     }
 
     public function testChainRunInOrderOfPrecedenceWithSkipAfterThrow()
@@ -133,7 +175,7 @@ class MockProcessor implements Processor
     public static $seq = 0;
     public $my_sequence = null;
 
-    public function process(Request $req, Response $resp)
+    public function process(Request $req, Result $resp)
     {
         ++static::$seq;
         $this->my_sequence = static::$seq;
@@ -142,7 +184,7 @@ class MockProcessor implements Processor
 
 class MockThrowingProcessor implements Processor
 {
-    public function process(Request $req, Response $resp)
+    public function process(Request $req, Result $resp)
     {
         ++MockProcessor::$seq;
         $this->my_sequence = MockProcessor::$seq;

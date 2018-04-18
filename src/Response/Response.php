@@ -3,7 +3,7 @@
 This is part of Wedeto, the WEb DEvelopment TOolkit.
 It is published under the MIT Open Source License.
 
-Copyright 2017, Egbert van der Wal
+Copyright 2017-2018, Egbert van der Wal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -33,7 +33,7 @@ abstract class Response extends \Exception
     /**
      * Available response mime types
      */
-    protected $mime = array();
+    protected $mime = [];
 
     /**
      * The cache policy for this response
@@ -81,7 +81,7 @@ abstract class Response extends \Exception
      */
     public function getHeaders()
     {
-        return array();
+        return [];
     }
 
     /**

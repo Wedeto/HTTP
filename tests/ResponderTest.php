@@ -32,7 +32,7 @@ use Wedeto\Log\Logger;
 use Wedeto\Log\LoggerFactory;
 use Wedeto\Log\Writer\MemLogWriter;
 
-use Wedeto\HTTP\Response;
+use Wedeto\HTTP\Result;
 use Wedeto\HTTP\Response\StringResponse;
 use Wedeto\HTTP\Response\Error;
 
@@ -98,41 +98,6 @@ final class ResponderTest extends TestCase
         $this->assertEquals($mock, $this->responder->getRequest());
     }
 
-    public function testSetCachePolicy()
-    {
-        $content = new StringResponse("foobar");
-
-        $response = new Response();
-        $response->setContent($content);
-        $cp = new CachePolicy;
-        $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC);
-        $content->setCachePolicy($cp);
-        $this->responder->setResponse($response);
-
-        $this->assertEquals($cp, $this->responder->getCachePolicy());
-
-        $new_cp = new CachePolicy;
-        $new_cp->setCachePolicy(CachePolicy::CACHE_PRIVATE);
-        $this->assertEquals($this->responder, $this->responder->setCachePolicy($new_cp));
-
-        $this->assertEquals($new_cp, $this->responder->getCachePolicy());
-
-        $this->responder = new MockResponder($this->request);
-        $this->responder->setResponse($response);
-
-        // Avoid responder closing PHPUnits ob_buffer
-        $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
-        try
-        {
-            $this->responder->respond();
-        }
-        catch (MockResponseResponse $mock_response)
-        {
-            $actual = $mock_response->getPrevious();
-            $this->assertEquals($content, $actual);
-        }
-    }
-
     public function testEndOutputBuffers()
     {
         $logger = Logger::getLogger(Responder::class);
@@ -187,15 +152,15 @@ final class ResponderTest extends TestCase
 
     public function testSetResponse()
     {
-        $content = new StringResponse('foobar', 'text/plain');
-        $response = new Response;
-        $response->setContent($content);
+        $response = new StringResponse('foobar', 'text/plain');
+        $result = new Result;
+        $result->setResponse($response);
 
-        $this->responder->setResponse($response);
+        $this->responder->setResult($result);
 
-        $actual = $this->responder->getResponse();
-        $this->assertInstanceOf(StringResponse::class, $response->getContent());
-        $this->assertEquals($response, $actual);
+        $actual = $this->responder->getResult();
+        $this->assertInstanceOf(StringResponse::class, $result->getResponse());
+        $this->assertEquals($result, $actual);
     }
 
     public function testRespond()
@@ -204,10 +169,10 @@ final class ResponderTest extends TestCase
         $this->responder = new MockResponder($this->request);
 
         $thr = new \InvalidArgumentException('foobar');
-        $content = new StringResponse(json_encode(['foo' => 'bar']), 'application/json');
-        $response = new Response;
-        $response->setContent($content);
-        $this->responder->setResponse($response);
+        $response = new StringResponse(json_encode(['foo' => 'bar']), 'application/json');
+        $result = new Result;
+        $result->setResponse($response);
+        $this->responder->setResult($result);
 
         // Avoid responder closing PHPUnits ob_buffer
         $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
@@ -219,7 +184,7 @@ final class ResponderTest extends TestCase
         {
             $this->assertEquals('application/json', $mock_response->mime);
             $actual = $mock_response->getPrevious();
-            $this->assertEquals(spl_object_hash($content), spl_object_hash($actual));
+            $this->assertEquals(spl_object_hash($response), spl_object_hash($actual));
         }
     }
 
@@ -269,10 +234,10 @@ final class ResponderTest extends TestCase
     {
         $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
-        $content = new MockResponseResponse(array(), new RuntimeException('foo'));
-        $resp = new Response;
-        $resp->setContent($content);
-        $this->responder->setResponse($resp);
+        $response = new MockResponseResponse(array(), new RuntimeException('foo'));
+        $resp = new Result;
+        $resp->setResponse($response);
+        $this->responder->setResult($resp);
 
         // Avoid responder closing PHPUnits ob_buffer
         $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
@@ -290,11 +255,11 @@ final class ResponderTest extends TestCase
     {
         $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
-        $content = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
-        $content->fail_transform = true;
-        $resp = new Response;
-        $resp->setContent($content);
-        $this->responder->setResponse($resp);
+        $response = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
+        $response->fail_transform = true;
+        $resp = new Result;
+        $resp->setResponse($response);
+        $this->responder->setResult($resp);
 
         // Avoid responder closing PHPUnits ob_buffer
         $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
@@ -312,10 +277,10 @@ final class ResponderTest extends TestCase
     {
         $this->request->setAccept(new Accept('application/json'));
         $this->responder = new MockResponder($this->request);
-        $content = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
-        $resp = new Response;
-        $resp->setContent($content);
-        $this->responder->setResponse($resp);
+        $response = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
+        $resp = new Result;
+        $resp->setResponse($response);
+        $this->responder->setResult($resp);
 
         // Avoid responder closing PHPUnits ob_buffer
         $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
@@ -345,15 +310,15 @@ final class ResponderTest extends TestCase
      */
     public function testRespondDoOutput()
     {
-        $content = new StringResponse("Example output", 'text/html');
+        $response = new StringResponse("Example output", 'text/html');
         $cp = new CachePolicy;
         $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC)->setExpiresInSeconds(3600);
-        $content->setCachePolicy($cp);
-        $response = new Response;
-        $response->setContent($content);
-        $this->responder->setResponse($response);
+        $response->setCachePolicy($cp);
+        $result = new Result;
+        $result->setResponse($response);
+        $this->responder->setResult($result);
 
-        $expected_headers = $response->getHeaders();
+        $expected_headers = $result->getHeaders();
         $expected_headers = array_merge($expected_headers, $cp->getHeaders());
         $expected_headers['Content-Type'] = 'text/html; charset=utf-8';
 
@@ -398,14 +363,14 @@ final class ResponderTest extends TestCase
 
     public function testRepondDoOutputWithoutHeaders()
     {
-        $content = new StringResponse("Example output", 'text/html');
+        $response = new StringResponse("Example output", 'text/html');
         $cp = new CachePolicy;
         $cp->setCachePolicy(CachePolicy::CACHE_PUBLIC)->setExpiresInSeconds(3600);
-        $content->setCachePolicy($cp);
+        $response->setCachePolicy($cp);
 
-        $response = new Response;
-        $response->setContent($content);
-        $this->responder->setResponse($response);
+        $result = new Result;
+        $result->setResponse($response);
+        $this->responder->setResult($result);
 
         $logger = Logger::getLogger(Responder::class);
         Responder::setLogger($logger);
@@ -463,6 +428,6 @@ class MockResponder extends Responder
 {
     protected function doOutput(string $mime)
     {
-        throw new MockResponseResponse($mime, $this->response->getContent());
+        throw new MockResponseResponse($mime, $this->result->getResponse());
     }
 }

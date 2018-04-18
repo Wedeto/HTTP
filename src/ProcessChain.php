@@ -43,9 +43,9 @@ use Wedeto\Util\Functions as WF;
  *
  * Each processor of any stage must implement the Processor interface which requires one method:
  *
- * process(Request $request, Response $response);
+ * process(Request $request, Result $result);
  *
- * This method is expected to return nothing and make changes to either the request or the response,
+ * This method is expected to return nothing and make changes to either the request or the result,
  * or both.
  */
 class ProcessChain
@@ -143,7 +143,7 @@ class ProcessChain
         foreach ($this->processors as $proc)
         {
             if ($proc['stage'] === $stage)
-                $list[] = $stage['processor'];
+                $list[] = $proc['processor'];
         }
         return $list;
     }
@@ -154,11 +154,11 @@ class ProcessChain
      * stage is advanced to the post processing stage.
      *
      * @param Request $request The request to process
-     * @return Response The produced response
+     * @return Result The produced response
      */
     public function process(Request $request)
     {
-        $response = new Response;
+        $result = new Result;
 
         $stage = static::STAGE_FILTER;
 
@@ -171,15 +171,15 @@ class ProcessChain
             $processor = $processor['processor'];
             try
             {
-                $processor->process($request, $response);
+                $processor->process($request, $result);
             }
-            catch (Response\Response $content)
+            catch (Response\Response $response)
             {
-                $response->setContent($content);
+                $result->setResponse($response);
                 $stage = static::STAGE_POSTPROCESS;
             }
         }
 
-        return $response;
+        return $result;
     }
 }

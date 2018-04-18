@@ -50,11 +50,8 @@ class Responder implements Processor
     /** The request this is a response to */
     protected $request;
 
-    /** The response to send to the client */
-    protected $response = null;
-
-    /** The caching policy */
-    protected $cache_policy = null;
+    /** The result to send to the client */
+    protected $result = null;
 
     /** The target output buffer level before emitting output */
     protected $target_ob_level = 0;
@@ -75,10 +72,10 @@ class Responder implements Processor
      * @param Wedeto\HTTP\Request $request The request answered
      * @param Wedeto\HTTP\Response $response The response to the request
      */
-    public function process(Request $request, Response $response)
+    public function process(Request $request, Result $result)
     {
         $this->setRequest($request);
-        $this->setResponse($response);
+        $this->setResult($result);
         $this->respond();
     }
     
@@ -126,46 +123,22 @@ class Responder implements Processor
     }
 
     /**
-     * Set the response object
+     * Set the result object
      *
-     * @param Response $response The final response
+     * @param Wedeto\HTTP\Result $result The final result
      */
-    public function setResponse(Response $response)
+    public function setResult(Result $result)
     {
-        $this->response = $response;
-        $cp = $response->getContent()->getCachePolicy();
-        if ($cp !== null)
-            $this->setCachePolicy($cp);
-
-        return $this;
-    }
-
-    /** 
-     * Set the Cache Policy object
-     *
-     * @param CachePolicy $policy The policy
-     * @return WAPS\HTTP\Responder Provides fluent interface
-     */
-    public function setCachePolicy(CachePolicy $policy)
-    {
-        $this->cache_policy = $policy;
+        $this->result = $result;
         return $this;
     }
 
     /**
-     * @return Cache Policy The active cache policy object. Null if none was set
+     * @return Wedeto\HTTP\Result The current result object
      */
-    public function getCachePolicy()
+    public function getResult()
     {
-        return $this->cache_policy;
-    }
-
-    /**
-     * @return Wedeto\HTTP\Response The current response object
-     */
-    public function getResponse()
-    {
-        return $this->response;
+        return $this->result;
     }
 
     /**
@@ -272,17 +245,17 @@ class Responder implements Processor
     public function respond()
     {
         // Make sure there always is a response
-        if (null === $this->response)
+        if (null === $this->result)
         {
-            $this->response = new Response;
-            $this->response->setcontent(new Error(500, "No output produced"));
+            $this->result = new Result;
+            $this->result->setResponse(new Error(500, "No output produced"));
         }
         
         // Close and log all script output that hasn't been cleaned yet
         $this->endAllOutputBuffers($this->target_ob_level);
 
         // Add Content-Type mime header
-        $response = $this->response->getContent();
+        $response = $this->result->getResponse();
         $mime = $response->getMimeTypes();
         if (empty($mime))
         {
@@ -306,7 +279,7 @@ class Responder implements Processor
         if (empty($mime) || !$this->request->accepts($mime))
         {
             $mime = 'text/html';
-            $this->response->setContent(new Error(406, "Not Acceptable", 'No acceptable response can be offered'));
+            $this->result->setResponse(new Error(406, "Not Acceptable", 'No acceptable response can be offered'));
         }
 
         // Execute hooks
@@ -331,15 +304,9 @@ class Responder implements Processor
         $this->setHeader('Content-Type', $mime_charset);
 
         // Add headers from response to the final response
-        foreach ($this->response->getAllHeaders() as $key => $value)
+        foreach ($this->result->getAllHeaders() as $key => $value)
             $this->setHeader($key, $value);
 
-        if ($this->cache_policy !== null)
-        {
-            foreach ($this->cache_policy->getHeaders() as $key => $value)
-                $this->setHeader($key, $value);
-        }
-        
         // Store the response code
         $this->setResponseCode($response->getStatusCode());
 
@@ -383,7 +350,7 @@ class Responder implements Processor
             self::$logger->critical('Headers were already sent when Responder wants to send them');
 
         // Perform output
-        $this->response->getContent()->output($mime);
+        $this->result->getResponse()->output($mime);
 
         // We're done
         $desc = StatusCode::description($this->response_code);
