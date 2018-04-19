@@ -50,6 +50,8 @@ use Wedeto\Util\Functions as WF;
  */
 class ProcessChain
 {
+    const WDI_REUSABLE = true;
+
     const RUN_FIRST = -127;
     const RUN_DEFAULT = 0;
     const RUN_LAST = 127;

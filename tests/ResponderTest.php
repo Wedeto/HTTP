@@ -57,7 +57,8 @@ final class ResponderTest extends TestCase
         $this->config->set('site', 'tidy-output', true);
 
         $this->request = Request::createFromGlobals();
-        $this->responder = new Responder($this->request);
+        $this->responder = new Responder;
+        $this->responder->setRequest($this->request);
         $this->responder->setLogger(new \Psr\Log\NullLogger);
     }
 
@@ -166,7 +167,8 @@ final class ResponderTest extends TestCase
     public function testRespond()
     {
         $this->request->setAccept(new Accept('application/json'));
-        $this->responder = new MockResponder($this->request);
+        $this->responder = new MockResponder;
+        $this->responder->setRequest($this->request);
 
         $thr = new \InvalidArgumentException('foobar');
         $response = new StringResponse(json_encode(['foo' => 'bar']), 'application/json');
@@ -191,7 +193,8 @@ final class ResponderTest extends TestCase
     public function testRespondNoResponse()
     {
         $this->request->setAccept(new Accept('text/plain'));
-        $this->responder = new MockResponder($this->request);
+        $this->responder = new MockResponder;
+        $this->responder->setRequest($this->request);
 
         // Avoid responder closing PHPUnits ob_buffer
         $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
@@ -212,7 +215,8 @@ final class ResponderTest extends TestCase
     public function testRespondUnacceptableResponse()
     {
         $this->request->setAccept(new Accept('application/json'));
-        $this->responder = new MockResponder($this->request);
+        $this->responder = new MockResponder;
+        $this->responder->setRequest($this->request);
 
         // Avoid responder closing PHPUnits ob_buffer
         $this->assertEquals($this->responder, $this->responder->setTargetOutputBufferLevel(1));
@@ -233,7 +237,8 @@ final class ResponderTest extends TestCase
     public function testRespondEmptyResponse()
     {
         $this->request->setAccept(new Accept('application/json'));
-        $this->responder = new MockResponder($this->request);
+        $this->responder = new MockResponder;
+        $this->responder->setRequest($this->request);
         $response = new MockResponseResponse(array(), new RuntimeException('foo'));
         $resp = new Result;
         $resp->setResponse($response);
@@ -254,7 +259,8 @@ final class ResponderTest extends TestCase
     public function testTransformResponseFails()
     {
         $this->request->setAccept(new Accept('application/json'));
-        $this->responder = new MockResponder($this->request);
+        $this->responder = new MockResponder;
+        $this->responder->setRequest($this->request);
         $response = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
         $response->fail_transform = true;
         $resp = new Result;
@@ -276,7 +282,8 @@ final class ResponderTest extends TestCase
     public function testResponseSetCustomHeaders()
     {
         $this->request->setAccept(new Accept('application/json'));
-        $this->responder = new MockResponder($this->request);
+        $this->responder = new MockResponder;
+        $this->responder->setRequest($this->request);
         $response = new MockResponseResponse(array('application/json' => true), new RuntimeException('foo'));
         $resp = new Result;
         $resp->setResponse($response);

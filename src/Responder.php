@@ -57,13 +57,11 @@ class Responder implements Processor
     protected $target_ob_level = 0;
 
     /**
-     * Create the response to a Request
-     * @param Request $request The request this is the response to
+     * Create the respoder
      */
-    public function __construct(Request $request)
+    public function __construct()
     {
         self::getLogger();
-        $this->request = $request;
     }
 
     /**
