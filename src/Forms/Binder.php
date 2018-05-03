@@ -188,7 +188,8 @@ class Binder
                 throw new BinderException("No type defined for $prop");
 
             $base_tp = reset($var);
-            $element_tp = $base_tp === "array" ? $annotations->getAnnotationFirst("element") : null;
+            $element_tp = $base_tp === "array" ? $annotations->getAnnotationTokens("element") : [];
+            $element_tp = reset($element_tp);
             $search_type = $element_tp ?: $base_tp;
 
             $const_name = Type::class . '::' . strtoupper($search_type);
