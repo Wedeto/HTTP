@@ -412,7 +412,9 @@ class FormField implements FormElement
      */
     public function setValue($value, bool $transform = false)
     {
-        if ($transform && $this->transformer !== null)
+        if (null === $value)
+            $this->value = null;
+        elseif ($transform && $this->transformer !== null)
             $this->value = $this->transformer->deserialize($value);
         else
             $this->value = $value;
@@ -472,6 +474,11 @@ class FormField implements FormElement
     {
         $msg = $error_message['msg'] ?? "";
         $context = $error_message['context'] ?? [];
+        if (class_exists("Wedeto\I18n\I18nShortcut"))
+        {
+            return t($msg, $context);
+        }
+
         return WF::fillPlaceholders($msg, $context);
     }
 }

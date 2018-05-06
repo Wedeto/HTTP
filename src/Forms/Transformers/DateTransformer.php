@@ -39,7 +39,7 @@ class DateTransformer implements Transformer
 
     public function deserialize($value)
     {
-        return new DateTime($value);;
+        return !empty($value) ? new DateTime($value) : null;
     }
 
     public function getInheritMode()

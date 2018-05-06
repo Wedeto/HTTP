@@ -204,9 +204,9 @@ class Binder
                 $transformer = TransformStore::getInstance()->getTransformer($search_type);
             }
 
-            $fieldname = $element_tp !== null ? $name . '[]' : $name;
+            $fieldname = !empty($element_tp) ? $name . '[]' : $name;
+            $field = new FormField($fieldname, $type, 'text', '');
 
-            $field = new FormField($name, $type, 'text', '');
             if ($transformer)
                 $field->setTransformer($transformer);
 
@@ -392,7 +392,7 @@ class Binder
      */
     protected function bindValue(FormElement $element, ReflectionClass $refl, $instance)
     {
-        $name = $element->getName();
+        $name = $element->getName(true);
         if (substr($name, 0, 1) === "_")
             return;
 
