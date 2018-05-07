@@ -44,7 +44,7 @@ class RedirectRequest extends Response
      * @param int $timeout The amount of seconds to wait before performing the redirect
      * @param Throwable $previous A chained exception. Can be null
      */
-    public function __construct($url, int $status_code = 302, int $timeout = 0, $previous = null)
+    public function __construct($url, int $status_code = 303, int $timeout = 0, $previous = null)
     {
         // 3XX are only valid redirect status codes
         if ($status_code < 300 || $status_code > 399)
