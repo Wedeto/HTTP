@@ -300,6 +300,32 @@ class FormField implements FormElement
     }
 
     /**
+     * Get the fixed error message
+     * @retur array The fixed error message
+     */
+    public function getFixedError()
+    {
+        return $this->fixed_error;
+    }
+
+    /**
+     * Set the form field with an error state. This will override the
+     * fixed error.
+     *
+     * @param array $msg The error message. Must contain a 'msg' key.
+     * @return FormField provides fluent interface
+     */
+    public function setError(array $msg)
+    {
+        if (!isset($msg['msg']))
+            throw new InvalidArgumentException("Error message does not contain msg key");
+
+        $this->errors = [$msg];
+        $this->fixed_error = $msg;
+        return $this;
+    }
+
+    /**
      * @return string The name of the field
      */
     public function getName(bool $strip_array = false)
