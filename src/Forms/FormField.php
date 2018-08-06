@@ -474,7 +474,7 @@ class FormField implements FormElement
         $value = $dict->get($key);
         
         // No values submitted
-        if (empty($value) && count($value) === 0)
+        if (null === $value || ($value instanceof \Countable && count($value) === 0))
             return null;
 
         if ($depth < $this->name_depth)
