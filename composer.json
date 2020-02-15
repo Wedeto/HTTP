@@ -5,16 +5,16 @@
     "homepage": "https://wedeto.net",
     "type": "library",
     "require": {
-        "Wedeto/Util": "~1.0.0-beta1",
-        "Wedeto/IO": "~1.0.0-beta1",
-        "Wedeto/FileFormats": "~1.0.0-beta1",
+        "wedeto/util": "~1.0.0-beta1",
+        "wedeto/io": "~1.0.0-beta1",
+        "wedeto/fileformats": "~1.0.0-beta1",
         "php": ">=7.0.0"
     },
     "require-dev": {
         "phpunit/phpunit": ">=6.1",
-        "mikey179/vfsStream": "~1",
-        "Wedeto/Log": "~1.0.0-beta1",
-        "Wedeto/DB": "~1.0.0-beta1",
+        "mikey179/vfsstream": "~1",
+        "wedeto/log": "~1.0.0-beta1",
+        "wedeto/db": "~1.0.0-beta1",
         "ext-xdebug": ">=2.5.1"
     },
     "autoload": {
