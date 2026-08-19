@@ -62,15 +62,12 @@ class RequestBody
      */
     public function __construct(Dictionary $server)
     {
-        try
-        {
-            $this->content_type = strtolower($server['HTTP_CONTENT_TYPE']);
-            $this->content_length = $server->getInt('HTTP_CONTENT_LENGTH');
-        }
-        catch (\OutOfRangeException $e)
-        {
-            $this->content_type = $this->content_length = null;
-        }
+        $this->content_type = $server->has('HTTP_CONTENT_TYPE')
+            ? strtolower($server->getString('HTTP_CONTENT_TYPE'))
+            : null;
+        $this->content_length = $server->has('HTTP_CONTENT_LENGTH')
+            ? $server->getInt('HTTP_CONTENT_LENGTH')
+            : null;
     }
 
     /**

@@ -62,6 +62,9 @@ final class RequestBodyTest extends TestCase
 
         $body = new RequestBody($req);
         $this->assertFalse($body->isPresent());
+
+        $body = new RequestBody(new Dictionary);
+        $this->assertFalse($body->isPresent());
     }
 
     public function testRequestParserWithLengthTooHigh()

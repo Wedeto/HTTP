@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Handle requests with no content-type or content-length headers without PHP 8 deprecations.
+
 ## 1.1.0
 
 - Add support for PHP 8.1 through PHP 8.5.
