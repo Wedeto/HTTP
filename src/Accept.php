@@ -47,6 +47,9 @@ class Accept
     /** Accepted response types indicated by client */
 	protected $accept = array();
 
+    /** Whether this represents MIME types or languages */
+    protected $type;
+
     /**
      * Construct the accept header, parsing the provided string
      */
