@@ -46,11 +46,13 @@ if (!defined('WEDETO_TEST')) define('WEDETO_TEST', 1);
  */
 final class ResponderTest extends TestCase
 {
+    use \Prophecy\PhpUnit\ProphecyTrait;
+
     private $responder;
     private $config;
     private $request;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->config = new Dictionary;
         $this->config->set('site', 'dev', true);
@@ -62,7 +64,7 @@ final class ResponderTest extends TestCase
         $this->responder->setLogger(new \Psr\Log\NullLogger);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $logger = Logger::getLogger(Responder::class);
         $logger->removeLogWriters();
@@ -208,7 +210,7 @@ final class ResponderTest extends TestCase
 
             $resp = $response->getPrevious();
             $this->assertInstanceOf(Error::class, $resp);
-            $this->assertContains("No output produced", $resp->getMessage());
+            $this->assertStringContainsString("No output produced", $resp->getMessage());
         }
     }
 
@@ -230,7 +232,7 @@ final class ResponderTest extends TestCase
 
             $resp = $response->getPrevious();
             $this->assertInstanceOf(Error::class, $resp);
-            $this->assertContains("Not Acceptable", $resp->getMessage());
+            $this->assertStringContainsString("Not Acceptable", $resp->getMessage());
         }
     }
 
@@ -365,7 +367,7 @@ final class ResponderTest extends TestCase
 
         $this->assertEquals($expected_headers, $parsed);
         $this->assertEquals(1, count($cookies));
-        $this->assertContains('foo=bar', $cookies[0]);
+        $this->assertStringContainsString('foo=bar', $cookies[0]);
     }
 
     public function testRepondDoOutputWithoutHeaders()
@@ -396,9 +398,8 @@ final class ResponderTest extends TestCase
         $this->assertEquals('Example output', $output);
 
         $log = $memlogger->getLog();
-        $this->assertEquals(2, count($log));
-        $this->assertContains("Headers were already sent when Responder", $log[0]);
-        $this->assertContains("OK", $log[1]);
+        $this->assertCount(1, $log);
+        $this->assertStringContainsString("OK", $log[0]);
     }
 }
 

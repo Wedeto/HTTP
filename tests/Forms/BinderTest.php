@@ -56,14 +56,16 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'MockBaseForms.php';
  */
 final class BinderTest extends TestCase
 {
-    public function setUp()
+    use \Prophecy\PhpUnit\ProphecyTrait;
+
+    public function setUp(): void
     {
         DI::startNewContext('test');
         $tf = TransformStore::getInstance();
         $tf->registerTransformer(DateTime::class, new DateTransformer);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         DI::destroyContext('test');
     }
@@ -209,9 +211,9 @@ final class BinderTest extends TestCase
         $this->assertEquals(2, count($errors['']), "Two form errors should be returned");
         $this->assertEquals(1, count($errors['word']), "One field error should be returned");
 
-        $this->assertContains('Match with pattern', $errors['word'][0]['msg']);
-        $this->assertContains('missing h', $errors[''][0]['msg']);
-        $this->assertContains('Invalid foo', $errors[''][1]['msg']);
+        $this->assertStringContainsString('Match with pattern', $errors['word'][0]['msg']);
+        $this->assertStringContainsString('missing h', $errors[''][0]['msg']);
+        $this->assertStringContainsString('Invalid foo', $errors[''][1]['msg']);
 
         $data['word'] = 'fgh';
         $this->assertFalse($form->isValid($request));
@@ -221,7 +223,7 @@ final class BinderTest extends TestCase
 
         $this->assertEquals(1, count($errors['']), "One form error should be returned");
 
-        $this->assertContains('Invalid foo', $errors[''][0]['msg']);
+        $this->assertStringContainsString('Invalid foo', $errors[''][0]['msg']);
     }
 
     public function testBaseFormWithInvalidClassValidatorAnnotation()

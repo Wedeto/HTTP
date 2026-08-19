@@ -34,12 +34,14 @@ use Wedeto\Util\DI\DI;
  */
 final class TransformStoreTest extends TestCase
 {
-    public function setUp()
+    use \Prophecy\PhpUnit\ProphecyTrait;
+
+    public function setUp(): void
     {
         DI::startNewContext('test');
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         DI::destroyContext('test');
     }

@@ -81,7 +81,7 @@ final class ErrorTest extends TestCase
         ob_end_clean();
 
         $expected = "Foobarred!";
-        $this->assertContains($expected, $actual);
+        $this->assertStringContainsString($expected, $actual);
 
         $err = new Error(500, "Error2");
         $this->expectException(\InvalidArgumentException::class);

@@ -36,7 +36,7 @@ final class NonceTest extends TestCase
 {
     protected $session;
 
-    public function setUp()
+    public function setUp(): void
     {
         $base = new URL('http://example.com/');
         $cfg = new Dictionary;

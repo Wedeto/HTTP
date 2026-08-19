@@ -32,7 +32,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ProcessChainTest extends TestCase
 {
-    public function setUp()
+    public function setUp(): void
     {
         $this->get = [];
         $this->post = [];

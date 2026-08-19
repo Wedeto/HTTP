@@ -42,13 +42,13 @@ use Wedeto\HTTP\Request;
  */
 final class FormTest extends TestCase
 {
-    public function setUp()
+    public function setUp(): void
     {
         DI::startNewContext('test');
         $this->nonce_hook = DI::getInjector()->getInstance(AddNonceToForm::class);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->nonce_hook->unregister();
         DI::destroyContext('test');
@@ -231,13 +231,13 @@ final class FormTest extends TestCase
         $this->assertFalse($form->isValid($req));
         $errors = $form->getErrors();
         $this->assertTrue(isset($errors['_nonce']));
-        $this->assertcontains('Nonce was not submitted', $errors['_nonce'][0]['msg']);
+        $this->assertStringContainsString('Nonce was not submitted', $errors['_nonce'][0]['msg']);
 
         $post['_nonce'] = 'invalid';
         $this->assertFalse($form->isValid($req));
         $errors = $form->getErrors();
         $this->assertTrue(isset($errors['_nonce']));
-        $this->assertcontains('Nonce was invalid', $errors['_nonce'][0]['msg']);
+        $this->assertStringContainsString('Nonce was invalid', $errors['_nonce'][0]['msg']);
     }
 
     public function testFormInvalidDataFailsValidation()
@@ -256,7 +256,7 @@ final class FormTest extends TestCase
         $this->assertTrue(isset($errors['test1']));
 
         $error = FormField::formatErrorMessage($errors['test1'][0]);
-        $this->assertcontains('Integral value required', $error);
+        $this->assertStringContainsString('Integral value required', $error);
     }
 
     public function testFormWithSubforms()
@@ -320,7 +320,7 @@ final class FormTest extends TestCase
         $this->assertTrue(isset($errors['part']['foo']), "Foo field should have errors");
 
         $error = FormField::formatErrorMessage($errors['part']['foo'][0]);
-        $this->assertContains('Integral value required', $error);
+        $this->assertStringContainsString('Integral value required', $error);
     }
 
     public function testValidatewithFormValidators()
@@ -358,7 +358,7 @@ final class FormTest extends TestCase
         $errors = $form->getErrors();
         $this->assertTrue(isset($errors['']));
         $error = FormField::formatErrorMessage($errors[''][0]);
-        $this->assertContains('should be greater than', $error);
+        $this->assertStringContainsString('should be greater than', $error);
 
         $post['test2'] = '5';
         $this->assertTrue($form->isValid($req));
@@ -411,7 +411,7 @@ final class FormTest extends TestCase
         $errors = $form->getErrors();
         $this->assertTrue(isset($errors['foo'][2]['test2'][0]));
         $msg = FormField::formatErrorMessage($errors['foo'][2]['test2'][0]);
-        $this->assertContains('Integral value required', $msg);
+        $this->assertStringContainsString('Integral value required', $msg);
 
         $post['foo'] = "bar";
         $this->assertFalse($form->isValid($req));
@@ -419,7 +419,7 @@ final class FormTest extends TestCase
         $errors = $form->getErrors();
         $this->assertTrue(isset($errors['foo']));
         $msg = FormField::formatErrorMessage($errors['foo']['']);
-        $this->assertContains('foo is required', $msg);
+        $this->assertStringContainsString('foo is required', $msg);
 
         $post['foo'] = ['bar' => "bar"];
         $this->assertFalse($form->isValid($req));
@@ -427,7 +427,7 @@ final class FormTest extends TestCase
         $errors = $form->getErrors();
         $this->assertTrue(isset($errors['foo']));
         $msg = FormField::formatErrorMessage($errors['foo']['']);
-        $this->assertContains('foo should be an array', $msg);
+        $this->assertStringContainsString('foo should be an array', $msg);
     }
 
 }

@@ -39,12 +39,12 @@ use Wedeto\HTTP\URL;
  */
 final class AddNonceToFormTest extends TestCase
 {
-    public function setUp()
+    public function setUp(): void
     {
         DI::startNewContext('test');
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $inst = DI::getInjector()->getInstance(AddNonceToForm::class);
         if ($inst !== null)

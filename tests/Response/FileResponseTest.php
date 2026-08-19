@@ -48,7 +48,7 @@ final class FileResponseTest extends TestCase
     private $logger;
     private $memlog;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->logger = Logger::getLogger(FileResponse::class);
         FileResponse::setLogger($this->logger);
@@ -67,7 +67,7 @@ final class FileResponseTest extends TestCase
         fclose($fh);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->logger->removeLogWriters();
     }

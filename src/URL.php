@@ -46,7 +46,7 @@ class URL implements \ArrayAccess
      * @param string|URL $url The URL to parse
      * @param string $default_scheme The scheme to use when the URL doesn't have any
      */
-    public function __construct($url = "", string $default_scheme = null)
+    public function __construct($url = "", ?string $default_scheme = null)
     {
         if (empty($url))
             return;
@@ -66,7 +66,7 @@ class URL implements \ArrayAccess
      * @param string $default_scheme A default scheme to use when no scheme is
      * used in the URL.
      */
-    public static function parse(string $url, string $default_scheme = null)
+    public static function parse(string $url, ?string $default_scheme = null)
     {
         if (substr($url, 0, 4) === "www." && !empty($default_scheme))
             $url = $default_scheme . '://' . $url;
@@ -237,24 +237,25 @@ class URL implements \ArrayAccess
     }
 
     // ArrayAccess implementation
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {
         return $this->get($offset);
     }
 
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
-        return $this->set($offset, $value);
+        $this->set($offset, $value);
     }
 
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return property_exists($this, $offset);
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
-        return $this->set($offset, null);
+        $this->set($offset, null);
     }
 
     /**

@@ -46,7 +46,7 @@ final class RequestTest extends TestCase
 
     private $url;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->get = array(
             'foo' => 'bar'

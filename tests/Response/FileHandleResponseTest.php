@@ -40,7 +40,7 @@ final class FileHandleResponseTest extends TestCase
     private $logger;
     private $memlog;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->logger = Logger::getLogger(FileHandleResponse::class);
         FileHandleResponse::setLogger($this->logger);
@@ -52,7 +52,7 @@ final class FileHandleResponseTest extends TestCase
         fseek($this->fh, 0);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         fclose($this->fh);
 

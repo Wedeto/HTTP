@@ -52,7 +52,7 @@ final class SessionTest extends TestCase
 
     private $session_id;
 
-    public function setUp()
+    public function setUp(): void
     {
         // Make sure there is no active session
         if (session_status() === PHP_SESSION_ACTIVE)
@@ -75,7 +75,7 @@ final class SessionTest extends TestCase
         $this->cache->setCachePath($this->dir);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         if (session_status() === PHP_SESSION_ACTIVE)
             session_commit();

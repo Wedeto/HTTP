@@ -402,7 +402,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
      *                           false, the _form_name element is not added
      * @return Form Provides fluent interface
      */
-    public function prepare(Session $session = null, bool $is_root_form = true)
+    public function prepare(?Session $session = null, bool $is_root_form = true)
     {
         foreach ($this->form_elements as $field)
         {
@@ -432,7 +432,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * Rewind the array iterator
      */
-    public function rewind()
+    public function rewind(): void
     {
         $this->iterator = new ArrayIterator($this->form_elements);
     }
@@ -440,7 +440,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * Move the iterator forward
      */
-    public function next()
+    public function next(): void
     {
         $this->iterator->next();
     }
@@ -448,7 +448,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * @return bool True if the iterator is valid, false if not
      */
-    public function valid()
+    public function valid(): bool
     {
         return $this->iterator !== null && $this->iterator->valid();
     }
@@ -456,6 +456,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * @return string The name of the current form element
      */
+    #[\ReturnTypeWillChange]
     public function key()
     {
         return $this->iterator->key();
@@ -464,6 +465,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * @return FormElement The current form element
      */
+    #[\ReturnTypeWillChange]
     public function current()
     {
         return $this->iterator->current();
@@ -472,7 +474,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * @return int The amount of form elements
      */
-    public function count()
+    public function count(): int
     {
         return count($this->form_elements);
     }
@@ -480,6 +482,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     /**
      * @return FormElement The element with the specified name
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {
         return $this->form_elements[$offset] ?? null;
@@ -490,7 +493,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
      * @param string $offset The name of the element
      * @param FormElement $element The element to set
      */
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         if (!($value instanceof FormField))
             throw new InvalidArgumentException("Value must be a FormField");
@@ -502,7 +505,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
      * Remove an element
      * @param string $offset The name of the element to remove
      */
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         unset($this->form_elements[$offset]);
     }
@@ -511,7 +514,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
      * @param string $offset The offset to check
      * @return bool True when the specified offset exists, false if it does not
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return isset($this->form_elements[$offset]);
     }

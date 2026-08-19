@@ -36,6 +36,8 @@ use Wedeto\Util\Validation\Validator;
  */
 final class FormFieldTest extends TestCase
 {
+    use \Prophecy\PhpUnit\ProphecyTrait;
+
     public function testConstruct()
     {
         $field = new FormField('foo', Type::STRING, 'text', 'bar');
@@ -138,7 +140,7 @@ final class FormFieldTest extends TestCase
         $valid = $field->validate($params, $files);
         $this->assertFalse($valid);
         $msg = FormField::formatErrorMessage($field->getErrors()[0]);
-        $this->assertContains('Integral value required', $msg);
+        $this->assertStringContainsString('Integral value required', $msg);
     }
 
     public function testDetermineIsRequired()
@@ -167,25 +169,25 @@ final class FormFieldTest extends TestCase
         $this->assertFalse($valid);
         $errors = $field->getErrors();
         $this->assertTrue(isset($errors[2]));
-        $this->assertContains('Integral value required', FormField::formatErrorMessage($errors[2][0]));
+        $this->assertStringContainsString('Integral value required', FormField::formatErrorMessage($errors[2][0]));
 
         $params['foo'] = "RandomString";
         $valid = $field->validate($params, $files);
         $this->assertFalse($valid);
         $errors = $field->getErrors();
-        $this->assertContains('Invalid value for foo', FormField::formatErrorMessage($errors[''][0]));
+        $this->assertStringContainsString('Invalid value for foo', FormField::formatErrorMessage($errors[''][0]));
 
         $params['foo'] = ['foo' => [3, 4, 5]];
         $valid = $field->validate($params, $files);
         $this->assertFalse($valid);
         $errors = $field->getErrors();
-        $this->assertContains('Field foo[] should not nest', FormField::formatErrorMessage($errors[''][0]));
+        $this->assertStringContainsString('Field foo[] should not nest', FormField::formatErrorMessage($errors[''][0]));
 
         $params['foo'] = [];
         $valid = $field->validate($params, $files);
         $this->assertFalse($valid);
         $errors = $field->getErrors();
-        $this->assertContains('Required field: foo[]', FormField::formatErrorMessage($errors[''][0]));
+        $this->assertStringContainsString('Required field: foo[]', FormField::formatErrorMessage($errors[''][0]));
     }
 
     public function testValidateWithMultiDimensionalArray()
@@ -209,7 +211,7 @@ final class FormFieldTest extends TestCase
         $valid = $field->validate($params, $files);
         $this->assertFalse($valid);
         $errors = $field->getErrors();
-        $this->assertContains('Field required', FormField::formatErrorMessage($errors[0]));
+        $this->assertStringContainsString('Field required', FormField::formatErrorMessage($errors[0]));
         $this->assertNull($field->getValue());
     }
 

@@ -139,7 +139,7 @@ final class DataResponseTest extends TestCase
         }
         catch (\InvalidArgumentException $e)
         {
-            $this->assertContains("Class foo does not exist or does not implement", $e->getMessage());
+            $this->assertStringContainsString("Class foo does not exist or does not implement", $e->getMessage());
             $thrown = true;
         }
         $this->assertTrue($thrown, "Exception was not thrown");
@@ -151,7 +151,7 @@ final class DataResponseTest extends TestCase
         }
         catch (\InvalidArgumentException $e)
         {
-            $this->assertContains("Invalid writer specified: NULL", $e->getMessage());
+            $this->assertStringContainsString("Invalid writer specified: NULL", $e->getMessage());
             $thrown = true;
         }
         $this->assertTrue($thrown, "Exception was not thrown");

@@ -138,7 +138,7 @@ final class AcceptTest extends TestCase
             }
             catch (\InvalidArgumentException $e)
             {
-                $this->assertContains('Invalid accept header', $e->getMessage());
+                $this->assertStringContainsString('Invalid accept header', $e->getMessage());
                 $thrown = true;
             }
             $this->assertEquals($should_throw, $thrown);

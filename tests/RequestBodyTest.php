@@ -93,7 +93,7 @@ final class RequestBodyTest extends TestCase
         $log = $fakelog->getLog();
         $this->assertEquals(1, count($log));
         $line = reset($log);
-        $this->assertContains("Less data was posted than promised", $line);
+        $this->assertStringContainsString("Less data was posted than promised", $line);
     }
 
     public function testRequestParserWithLengthTooLow()

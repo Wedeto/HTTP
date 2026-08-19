@@ -213,13 +213,16 @@ class Session extends Dictionary
             throw new \LogicException("Repeated session initialization");
 
         // Now do the PHP session magic to initialize the $_SESSION array
-        session_set_cookie_params(
-            $this->lifetime, 
-            $this->session_cookie->getPath(),
-            $this->session_cookie->getDomain(),
-            $this->session_cookie->getSecure(),
-            $this->session_cookie->getHTTPOnly()
-        );
+        if (filter_var(ini_get('session.use_cookies'), FILTER_VALIDATE_BOOLEAN))
+        {
+            session_set_cookie_params(
+                $this->lifetime,
+                $this->session_cookie->getPath(),
+                $this->session_cookie->getDomain(),
+                $this->session_cookie->getSecure(),
+                $this->session_cookie->getHTTPOnly()
+            );
+        }
         session_name($this->session_cookie->getName());
 
         $custom_session_id = defined('WEDETO_TEST') && WEDETO_TEST === 1 && $this->session_id !== null;
@@ -230,9 +233,6 @@ class Session extends Dictionary
         }
             
         session_start();
-
-        if ($custom_session_id)
-            ini_set('session.use_strict_mode', 1);
 
         // Store the session ID
         $this->session_id = session_id();
@@ -300,7 +300,6 @@ class Session extends Dictionary
                     ini_set('session.use_strict_mode', 0);
                     session_id($new_session);
                     session_start();
-                    ini_set('session.use_strict_mode', 1);
                     $this->session_id = session_id();
                 }
                 else
@@ -365,7 +364,6 @@ class Session extends Dictionary
             session_id($new_session_id);
 
             session_start();
-            ini_set('session.use_strict_mode', 1);
             $this->session_id = session_id();
             $this->values = &$_SESSION;
             $this->session_cookie->setValue($new_session_id);
