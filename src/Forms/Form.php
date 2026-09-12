@@ -49,6 +49,7 @@ class Form implements FormElement, \Iterator, \ArrayAccess, \Countable
     protected $form_validators = [];
     protected $errors;
     protected $value = null;
+    protected $iterator = null;
 
     protected $required = true;
     protected $repeatable = false;

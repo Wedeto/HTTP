@@ -44,6 +44,7 @@ class FormField implements FormElement
     protected $is_file = false;
     protected $is_array = false;
     protected $transformer = null;
+    protected $control_type;
 
     protected $title = '';
     protected $description = '';

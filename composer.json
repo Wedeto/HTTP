@@ -5,7 +5,7 @@
     "homepage": "https://wedeto.net",
     "type": "library",
     "require": {
-        "wedeto/util": "^1.1.1",
+        "wedeto/util": "^1.1.7",
         "wedeto/io": "^1.1.0",
         "wedeto/fileformats": "^1.1.0",
         "php": "^7.4 || >=8.1"
@@ -14,8 +14,8 @@
         "phpunit/phpunit": "^9.6.33",
         "phpspec/prophecy-phpunit": "^2.0",
         "mikey179/vfsstream": "^1.6",
-        "wedeto/log": "^1.1.0",
-        "wedeto/db": "^1.1.0"
+        "wedeto/log": "^1.1.1",
+        "wedeto/db": "^1.1.2"
     },
     "suggest": {
         "ext-xdebug": "Enables code coverage"

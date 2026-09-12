@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+
+- Declare form iterator and control-type state explicitly for PHP 8.2 and newer.
+
 ## 1.1.2
 
 - Declare the Accept header type property explicitly for PHP 8.2 and newer.
